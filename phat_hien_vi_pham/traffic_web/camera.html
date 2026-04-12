@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Giám Sát Camera</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --sidebar-color: #1e293b;
+            --text-main: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            color: var(--text-main);
+        }
+
+        /* Sidebar - Giữ nguyên đồng bộ */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-color);
+            height: 100vh;
+            color: white;
+            position: fixed;
+            padding: 20px 0;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: #cbd5e1;
+            padding: 12px 25px;
+            text-decoration: none;
+            transition: 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background: #334155;
+            color: white;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Nội dung chính */
+        .main {
+            margin-left: 260px;
+            padding: 30px;
+            width: calc(100% - 260px);
+        }
+
+        h1 { font-weight: 600; margin-bottom: 20px; }
+
+        /* Khu vực điều khiển & Video */
+        .video-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #videoSelect {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            width: 300px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .media-wrapper {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            line-height: 0; /* Xử lý khoảng trống thừa bên dưới video */
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+        }
+
+        video, img#cameraStream {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+        }
+
+        /* Bảng vi phạm */
+        .table-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            border-bottom: 2px solid #edf2f7;
+        }
+
+        td {
+            padding: 15px;
+            text-align: center;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* Ảnh vi phạm thu nhỏ */
+        .violation-img {
+            width: 80px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .violation-img:hover {
+            transform: scale(1.5);
+            z-index: 10;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-red { background: #fee2e2; color: #dc2626; }
+        .badge-green { background: #dcfce7; color: #16a34a; }
+
+    </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <h2>🚦 Traffic System</h2>
+    <a href="index.html">📊 Tổng quan</a>
+    <a href="camera.html">📹 Giám sát</a>
+    <a href="violations.html">🚫 Hồ sơ vi phạm</a>
+    <a href="reports.html">📈 Báo cáo & thống kê</a>
+    <a href="settings.html">⚙️ Cài đặt hệ thống</a>
+</div>
+
+<div class="main">
+    <h1>📹 Hệ thống Giám sát</h1>
+
+    <div class="video-container">
+        <label for="videoSelect" style="font-weight: 600; margin-right: 10px;">Chọn nguồn Camera:</label>
+        <select id="videoSelect">
+            <option value="videos/test1.mp4">Video Camera 1</option>
+            <option value="videos/test2.mp4">Video Camera 2</option>
+            <option value="Camera 1">AI Camera Real-time 1</option>
+            <option value="Camera 2">AI Camera Real-time 2</option>
+        </select>
+
+        <div class="media-wrapper">
+            <video id="videoPlayer" controls>
+                <source id="videoSource" src="videos/test1.mp4" type="video/mp4">
+            </video>
+
+            <img id="cameraStream" style="display:none;" alt="Live Stream" />
+        </div>
+    </div>
+
+    <div class="table-section">
+        <h2>🚫 Vi phạm phát hiện mới nhất</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Loại vi phạm</th>
+                    <th>Thời gian</th>
+                    <th>Camera</th>
+                    <th>Biển số</th>
+                    <th>Ảnh bằng chứng</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td><b>#102</b></td>
+                    <td><span class="badge badge-red">Vượt đèn đỏ</span></td>
+                    <td>14:20:05</td>
+                    <td>Camera 01</td>
+                    <td><code style="background:#eee; padding:3px 6px;">29A-123.45</code></td>
+                    <td><img src="https://via.placeholder.com/80x50" class="violation-img"></td>
+                    <td><span class="badge badge-green">Đã xác minh</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="js/violation.js"></script>
+<script src="js/video.js"></script>
+
+</body>
+</html>

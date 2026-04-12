@@ -1,0 +1,7 @@
+{
+    "confidence": 0.75,
+    "auto_save": true,
+    "ip_camera": "192.168.1.100",
+    "storage_days": 30,
+    "alert_sound": true
+}

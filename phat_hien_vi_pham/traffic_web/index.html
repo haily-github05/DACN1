@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Giám Sát Vi Phạm Giao Thông</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --sidebar-color: #1e293b;
+            --text-main: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            color: var(--text-main);
+        }
+
+        /* Sidebar hiện đại */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-color);
+            height: 100vh;
+            color: white;
+            position: fixed;
+            padding: 20px 0;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: #cbd5e1;
+            padding: 12px 25px;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            margin-bottom: 5px;
+        }
+
+        .sidebar a:hover {
+            background: #334155;
+            color: white;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Nội dung chính */
+        .main {
+            margin-left: 260px;
+            padding: 40px;
+            width: calc(100% - 260px);
+        }
+
+        h1 { font-weight: 600; margin-bottom: 30px; font-size: 1.8rem; }
+
+        /* Card Stats */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card:hover { transform: translateY(-5px); }
+
+        .card h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+
+        .card p {
+            margin: 10px 0 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        /* Table Design */
+        .table-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            padding: 15px;
+            border-bottom: 2px solid #edf2f7;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        tr:hover { background-color: #f1f5f9; }
+
+        /* Badge Status */
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-new { background: #dcfce7; color: #15803d; }
+        .status-pending { background: #fef9c3; color: #a16207; }
+    /* Căn giữa tiêu đề và nội dung ô */
+    th, td {
+        padding: 15px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+        
+        /* Căn giữa theo chiều ngang */
+        text-align: center; 
+        
+        /* Căn giữa theo chiều dọc (đối với hàng có độ cao lớn) */
+        vertical-align: middle; 
+    }
+
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>🚦 Traffic System</h2>
+    <a href="index.html">📊 Tổng quan</a>
+    <a href="camera.html">📹 Giám sát</a>
+    <a href="violations.html">🚫 Hồ sơ vi phạm</a>
+    <a href="reports.html">📈 Báo cáo & thống kê</a>
+    <a href="settings.html">⚙️ Cài đặt hệ thống</a>
+</div>
+
+<div class="main">
+    <h1>Bảng điều khiển hệ thống</h1>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Tổng vi phạm</h3>
+            <p id="total">0</p>
+        </div>
+        <div class="card" style="border-left: 5px solid #ef4444;">
+            <h3>Vượt đèn đỏ</h3>
+            <p id="redLight" style="color: #ef4444;">0</p>
+        </div>
+        <div class="card" style="border-left: 5px solid #f59e0b;">
+            <h3>Không đội mũ</h3>
+            <p id="noHelmet" style="color: #f59e0b;">0</p>
+        </div>
+    </div>
+
+    <h2>Danh sách vi phạm mới nhất</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Biển số</th>
+                    <th>Loại vi phạm</th>
+                    <th>Thời gian</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="violationTable">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Tối ưu: Gộp 2 hàm load vào 1 để chỉ gọi API 1 lần
+async function updateDashboard() {
+    try {
+        const response = await fetch("http://127.0.0.1:5000/api/violations");
+        const data = await response.json();
+
+        let tableHtml = "";
+        let redLightCount = 0;
+        let noHelmetCount = 0;
+
+        data.forEach((v, index) => {
+            // Đếm stats
+            const type = (v.type || "").toLowerCase();
+            if (type.includes("red") || type.includes("đèn đỏ")) redLightCount++;
+            if (type.includes("helmet") || type.includes("mũ")) noHelmetCount++;
+
+            // Render table
+            tableHtml += `
+                <tr>
+                    <td><b>${v.id ?? index + 1}</b></td>
+                    <td><code style="background:#e2e8f0; padding:2px 5px; border-radius:4px;">${v.plate || v.vehicle_id || "N/A"}</code></td>
+                    <td>${v.type || "Không xác định"}</td>
+                    <td>${v.time || "---"}</td>
+                    <td><span class="status status-new">${v.status || "MỚI"}</span></td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("violationTable").innerHTML = tableHtml;
+        document.getElementById("total").innerText = data.length;
+        document.getElementById("redLight").innerText = redLightCount;
+        document.getElementById("noHelmet").innerText = noHelmetCount;
+
+    } catch (error) {
+        console.error("Lỗi kết nối API:", error);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", updateDashboard);
+</script>
+
+</body>
+</html>

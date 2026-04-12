@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo & Thống Kê | Traffic AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --sidebar-color: #1e293b;
+            --text-main: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            color: var(--text-main);
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-color);
+            height: 100vh;
+            color: white;
+            position: fixed;
+            padding: 20px 0;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+        .sidebar a {
+            display: block;
+            color: #cbd5e1;
+            padding: 12px 25px;
+            text-decoration: none;
+            transition: 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background: #334155;
+            color: white;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .main {
+            margin-left: 260px;
+            padding: 30px;
+            width: calc(100% - 260px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .chart-card h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #475569;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+
+        th { background: #f8fafc; color: #64748b; font-size: 0.8rem; text-transform: uppercase; }
+
+        .rank-badge {
+            width: 28px; height: 28px;
+            background: #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .btn-export {
+            background: #2563eb; color: white; border: none;
+            padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>🚦 Traffic System</h2>
+    <a href="index.html">📊 Tổng quan</a>
+    <a href="camera.html">📹 Giám sát</a>
+    <a href="violations.html">🚫 Hồ sơ vi phạm</a>
+    <a href="reports.html">📈 Báo cáo & thống kê</a>
+    <a href="settings.html">⚙️ Cài đặt hệ thống</a>
+</div>
+<div class="main">
+    <div class="header">
+        <h1>📈 Báo cáo & Thống kê</h1>
+        <button class="btn-export" onclick="window.print()">📥 Tải báo cáo (PDF)</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="chart-card">
+            <h3>Xu hướng vi phạm (7 ngày qua)</h3>
+            <canvas id="lineChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3>Tỷ lệ loại vi phạm</h3>
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3>📊 Thống kê chi tiết theo loại lỗi</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Loại vi phạm</th>
+                    <th>Số lượng ghi nhận</th>
+                    <th>Tỷ lệ (%)</th>
+                    <th>Mức độ phổ biến</th>
+                </tr>
+            </thead>
+            <tbody id="statsTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let lineChartInst, pieChartInst; // Lưu instance để tránh vẽ đè
+
+async function initStatistics() {
+    try {
+        const response = await fetch("http://127.0.0.1:5000/api/violations");
+        const data = await response.json();
+
+        const total = data.length;
+        const counts = {};
+
+        // 1. Đếm dữ liệu
+        data.forEach(v => {
+            let type = v.type || "Chưa xác định";
+            counts[type] = (counts[type] || 0) + 1;
+        });
+
+        const sortedStats = Object.keys(counts).map(type => ({
+            name: type,
+            count: counts[type]
+        })).sort((a, b) => b.count - a.count);
+
+        // 2. Cập nhật Bảng (Table)
+        let tableHtml = "";
+        sortedStats.forEach((item, index) => {
+            const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+            let progressColor = "#3b82f6";
+            if (percentage > 40) progressColor = "#ef4444";
+            else if (percentage > 20) progressColor = "#f59e0b";
+
+            tableHtml += `
+                <tr>
+                    <td><span class="rank-badge">${index + 1}</span></td>
+                    <td style="font-weight: 600;">${item.name}</td>
+                    <td><b>${item.count}</b> vụ</td>
+                    <td>${percentage}%</td>
+                    <td style="width: 200px;">
+                        <div style="width: 100%; background: #e2e8f0; border-radius: 10px; height: 8px; overflow: hidden;">
+                            <div style="width: ${percentage}%; background: ${progressColor}; height: 100%;"></div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        document.getElementById("statsTableBody").innerHTML = tableHtml;
+
+        // 3. Cập nhật Biểu đồ Tròn
+        if(pieChartInst) pieChartInst.destroy();
+        const ctxPie = document.getElementById('pieChart').getContext('2d');
+        pieChartInst = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: sortedStats.map(i => i.name),
+                datasets: [{
+                    data: sortedStats.map(i => i.count),
+                    backgroundColor: ['#2563eb', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#64748b'],
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // 4. Cập nhật Biểu đồ Đường
+        updateLineChart(data);
+
+    } catch (error) {
+        console.error("Lỗi:", error);
+    }
+}
+
+function updateLineChart(data) {
+    const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const last7DaysNames = [];
+    const countsPerDay = new Array(7).fill(0);
+
+    // Tạo mảng 7 ngày gần đây
+    for (let i = 6; i >= 0; i--) {
+        let d = new Date();
+        d.setDate(d.getDate() - i);
+        last7DaysNames.push(days[d.getDay()]);
+    }
+
+    data.forEach(v => {
+        if (v.time) {
+            let recordDate = new Date(v.time);
+            let dayName = days[recordDate.getDay()];
+            let idx = last7DaysNames.indexOf(dayName);
+            if (idx > -1) countsPerDay[idx]++;
+        }
+    });
+
+    if(lineChartInst) lineChartInst.destroy();
+    const ctxLine = document.getElementById('lineChart').getContext('2d');
+    lineChartInst = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: last7DaysNames,
+            datasets: [{
+                label: 'Số vụ vi phạm',
+                data: countsPerDay,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", initStatistics);
+</script>
+</body>
+</html>
