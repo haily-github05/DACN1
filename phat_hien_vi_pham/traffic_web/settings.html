@@ -5,108 +5,120 @@
 <title>Cài đặt hệ thống</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #f5f7fb;
-    display: flex;
-}
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --sidebar-color: #1e293b;
+            --text-main: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f5f7fb;
+            display: flex;
+        }
 
 /* ===== SIDEBAR ===== */
-.sidebar {
-    width: 220px;
-    height: 100vh;
-    background: #1f2937;
-    color: white;
-    padding: 20px;
-    position: fixed;
-}
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-color);
+            height: 100vh;
+            color: white;
+            position: fixed;
+            padding: 20px 0;
+        }
 
-.sidebar h2 {
-    font-size: 18px;
-    margin-bottom: 20px;
-}
+        .sidebar h2 {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+        .sidebar a {
+            display: block;
+            color: #cbd5e1;
+            padding: 12px 25px;
+            text-decoration: none;
+            transition: 0.3s;
+            border-left: 4px solid transparent;
+        }
 
-.sidebar a {
-    display: block;
-    color: #ccc;
-    padding: 10px 0;
-    text-decoration: none;
-}
+        .sidebar a:hover {
+            background: #334155;
+            color: white;
+            border-left: 4px solid var(--primary-color);
+        }
+        /* ===== MAIN ===== */
+        .main {
+            margin-left: 260px;
+            padding: 20px;
+            width: 100%;
+        }
 
-.sidebar a:hover {
-    color: white;
-}
+        h1 {
+            margin-bottom: 20px;
+        }
 
-/* ===== MAIN ===== */
-.main {
-    margin-left: 260px;
-    padding: 20px;
-    width: 100%;
-}
+        /* ===== GRID ===== */
+        .settings-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
 
-h1 {
-    margin-bottom: 20px;
-}
+        /* ===== CARD ===== */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
 
-/* ===== GRID ===== */
-.settings-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
+        /* ===== FORM ===== */
+        label {
+            font-size: 13px;
+            color: #555;
+            display: block;
+            margin-top: 10px;
+        }
 
-/* ===== CARD ===== */
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
 
-/* ===== FORM ===== */
-label {
-    font-size: 13px;
-    color: #555;
-    display: block;
-    margin-top: 10px;
-}
+        /* ===== SWITCH ===== */
+        .switch {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
 
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-}
+        .switch input {
+            width: auto;
+        }
 
-/* ===== SWITCH ===== */
-.switch {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 15px;
-}
+        /* ===== BUTTON ===== */
+        button {
+            margin-top: 15px;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
 
-.switch input {
-    width: auto;
-}
-
-/* ===== BUTTON ===== */
-button {
-    margin-top: 15px;
-    padding: 10px;
-    width: 100%;
-    border: none;
-    background: #3b82f6;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #2563eb;
-}
+        button:hover {
+            background: #2563eb;
+        }
 </style>
 
 </head>
