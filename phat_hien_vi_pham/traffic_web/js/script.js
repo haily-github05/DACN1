@@ -3,17 +3,6 @@ const data = [
     {plate:"43A-12345", type:"Red Light", time:"10:20"},
     {plate:"92B-56789", type:"Speeding", time:"11:00"}
 ];
-
-// let html="";
-// data.forEach(v=>{
-//     html+=`
-//     <tr>
-//         <td>${v.plate}</td>
-//         <td>${v.type}</td>
-//         <td>${v.time}</td>
-//     </tr>`;
-// });
-
 document.getElementById("violationTable").innerHTML = html;
 document.getElementById("total").innerText = data.length;
 async function loadViolations() {

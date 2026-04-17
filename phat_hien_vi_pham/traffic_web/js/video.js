@@ -1,47 +1,95 @@
 const videoSelect = document.getElementById("videoSelect");
 const videoPlayer = document.getElementById("videoPlayer");
-const videoSource = document.getElementById("videoSource");
-const cameraStream = document.getElementById("cameraStream");
 
-// ======================
-// VIDEO LOCAL
-// ======================
-function loadVideo(src) {
-    videoPlayer.style.display = "block";
-    cameraStream.style.display = "none";
+async function loadVideos() {
+    try {
+        const res = await fetch("http://127.0.0.1:5000/videos");
 
-    videoSource.src = src;
-    videoPlayer.load();
-    videoPlayer.play();
-}
+        if (!res.ok) {
+            throw new Error("Không thể lấy danh sách video!");
+        }
 
-// ======================
-// AI STREAM
-// ======================
-function loadStream(cam) {
-    videoPlayer.style.display = "none";
-    cameraStream.style.display = "block";
+        const data = await res.json();
 
-    cameraStream.src = `http://127.0.0.1:5000/video_feed?cam=${cam}`;
-}
+        // reset dropdown
+        videoSelect.innerHTML = "";
 
-// ======================
-// SWITCH
-// ======================
-videoSelect.addEventListener("change", function () {
-    const value = this.value;
+        if (data.length === 0) {
+            const option = document.createElement("option");
+            option.textContent = "Không có video";
+            videoSelect.appendChild(option);
+            return;
+        }
 
-    if (value.includes("videos")) {
-        loadVideo(value);
-    } else {
-        loadStream(value);
+        // add option
+        data.forEach(video => {
+            const option = document.createElement("option");
+            option.value = video.path;
+            option.textContent = video.name;
+            videoSelect.appendChild(option);
+        });
+
+        // autoplay video đầu tiên
+        playVideo(data[0].path);
+
+    } catch (error) {
+        console.error("❌ Lỗi load video:", error);
+        showError("Không tải được danh sách video!");
     }
+}
+
+function playVideo(path) {
+    if (!path) return;
+
+    videoPlayer.style.display = "block";
+
+    // ✅ FIX Ở ĐÂY
+    const videoURL = `http://127.0.0.1:5000/videos/${path}`;
+
+    videoPlayer.src = videoURL;
+    videoPlayer.load();
+
+    videoPlayer.play().catch(err => {
+        console.warn("⚠️ Autoplay bị chặn:", err);
+    });
+
+    console.log("🎬 Đang phát:", videoURL);
+}
+
+videoSelect.addEventListener("change", function () {
+    const selectedPath = this.value;
+    playVideo(selectedPath);
 });
 
-// ======================
-// AUTO LOAD
-// ======================
-window.onload = function () {
-    videoSelect.value = "videos/test1.mp4";
-    loadVideo(videoSelect.value);
-};
+function showError(message) {
+    videoPlayer.style.display = "none";
+
+    let errorBox = document.getElementById("videoError");
+
+    if (!errorBox) {
+        errorBox = document.createElement("div");
+        errorBox.id = "videoError";
+        errorBox.style.color = "red";
+        errorBox.style.marginTop = "15px";
+        errorBox.style.fontWeight = "600";
+        videoPlayer.parentElement.appendChild(errorBox);
+    }
+
+    errorBox.textContent = message;
+}
+
+videoPlayer.addEventListener("error", () => {
+    console.error("❌ Không load được video");
+    showError("Video không tồn tại hoặc lỗi server!");
+});
+videoPlayer.addEventListener("waiting", () => {
+    console.log("⏳ Đang load video...");
+});
+
+videoPlayer.addEventListener("playing", () => {
+    console.log("✅ Video đang chạy");
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+    loadVideos();
+});

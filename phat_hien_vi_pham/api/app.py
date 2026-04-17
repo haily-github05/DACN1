@@ -1,22 +1,16 @@
 from flask import Flask, jsonify, Response, request, send_from_directory
 from flask_cors import CORS
 import cv2
-
+import os
 from api.models.violations import ViolationModel
-
+import mysql.connector
 app = Flask(__name__)
 CORS(app)
 
-# ======================
-# 📁 IMAGE EVIDENCE
-# ======================
 @app.route('/evidences/<path:filename>')
 def get_image(filename):
     return send_from_directory('../evidences', filename)
 
-# ======================
-# 🗄 DB CONFIG
-# ======================
 db_config = {
     "host": "localhost",
     "user": "root",
@@ -30,9 +24,6 @@ violation_model = ViolationModel(db_config)
 def get_violations():
     return jsonify(violation_model.get_all_violations())
 
-# ======================
-# 🚦 AI DETECT (DEMO)
-# ======================
 def detect_violation(frame):
     person = 1
     helmet = 0
@@ -40,94 +31,53 @@ def detect_violation(frame):
     if person == 1 and helmet == 0:
         return "NO_HELMET"
     return None
+@app.route('/api/violations/<int:id>', methods=['GET'])
+def get_violation(id):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor(dictionary=True)
 
-# ======================
-# 🎥 CAMERA SOURCE SELECT
-# ======================
-def get_video_source(cam):
-    if cam == "Camera 1":
-        return "videos/test1.mp4"
-    elif cam == "Camera 2":
-        return "videos/test2.mp4"
-    return "videos/test1.mp4"
+    cursor.execute("SELECT * FROM violations WHERE id = %s", (id,))
+    row = cursor.fetchone()
 
-# ======================
-# 📹 STREAM GENERATOR
-# ======================
-def generate_frames(cam):
-    cap = cv2.VideoCapture(get_video_source(cam))
+    cursor.close()
+    conn.close()
 
-    while True:
-        success, frame = cap.read()
-        if not success:
-            break
+    return jsonify(row)
+#camera
+@app.route('/videos/<path:filename>')
+def serve_video(filename):
+    video_dir = os.path.join(os.getcwd(), 'traffic_web', 'videos')
+    return send_from_directory(video_dir, filename)
+@app.route('/videos', methods=['GET'])
+def get_videos():
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="",
+            database="traffic_db"
+        )
+        cursor = conn.cursor()
 
-        violation = detect_violation(frame)
+        cursor.execute("SELECT id, name, path, location, created_at FROM videos")
+        rows = cursor.fetchall()
 
-        if violation:
-            cv2.putText(
-                frame,
-                f"VIOLATION: {violation}",
-                (50, 50),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0, 0, 255),
-                2
-            )
+        videos = []
+        for row in rows:
+            videos.append({
+                "id": row[0],
+                "name": row[1],
+                "path": row[2].replace("videos/", ""),
+                "location": row[3],
+                "created_at": str(row[4])
+            })
 
-        _, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
+        conn.close()
+        return jsonify(videos)
 
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-# ======================
-# 🌐 STREAM API
-# ======================
-@app.route('/video_feed')
-def video_feed():
-    cam = request.args.get("cam")
-    return Response(
-        generate_frames(cam),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
-# =======================
-# GET SETTINGS
-# =======================
-@app.route("/api/settings", methods=["GET"])
-def get_settings():
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM settings")
-    rows = cursor.fetchall()
-
-    result = {}
-    for r in rows:
-        result[r["setting_key"]] = r["setting_value"]
-
-    return jsonify(result)
-
-# =======================
-# SAVE SETTINGS
-# =======================
-@app.route("/api/settings", methods=["POST"])
-def save_settings():
-    data = request.json
-    cursor = db.cursor()
-
-    for key, value in data.items():
-        cursor.execute("""
-            INSERT INTO settings (setting_key, setting_value)
-            VALUES (%s, %s)
-            ON DUPLICATE KEY UPDATE setting_value=%s
-        """, (key, value, value))
-
-    db.commit()
-
-    return jsonify({"message": "Lưu settings thành công"})
-
-# ======================
-# 🚀 RUN SERVER
-# ======================
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == "__main__":
     app.run(debug=True)
     

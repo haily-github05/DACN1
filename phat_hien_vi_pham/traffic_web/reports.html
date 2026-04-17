@@ -128,7 +128,6 @@
     <a href="camera.html">📹 Giám sát</a>
     <a href="violations.html">🚫 Hồ sơ vi phạm</a>
     <a href="reports.html">📈 Báo cáo & thống kê</a>
-    <a href="settings.html">⚙️ Cài đặt hệ thống</a>
 </div>
 <div class="main">
     <div class="header">
@@ -166,7 +165,7 @@
 </div>
 
 <script>
-let lineChartInst, pieChartInst; // Lưu instance để tránh vẽ đè
+let lineChartInst, pieChartInst;
 
 async function initStatistics() {
     try {
@@ -176,7 +175,6 @@ async function initStatistics() {
         const total = data.length;
         const counts = {};
 
-        // 1. Đếm dữ liệu
         data.forEach(v => {
             let type = v.type || "Chưa xác định";
             counts[type] = (counts[type] || 0) + 1;
@@ -187,7 +185,6 @@ async function initStatistics() {
             count: counts[type]
         })).sort((a, b) => b.count - a.count);
 
-        // 2. Cập nhật Bảng (Table)
         let tableHtml = "";
         sortedStats.forEach((item, index) => {
             const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
@@ -211,7 +208,6 @@ async function initStatistics() {
         });
         document.getElementById("statsTableBody").innerHTML = tableHtml;
 
-        // 3. Cập nhật Biểu đồ Tròn
         if(pieChartInst) pieChartInst.destroy();
         const ctxPie = document.getElementById('pieChart').getContext('2d');
         pieChartInst = new Chart(ctxPie, {
@@ -226,7 +222,6 @@ async function initStatistics() {
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
 
-        // 4. Cập nhật Biểu đồ Đường
         updateLineChart(data);
 
     } catch (error) {
@@ -239,7 +234,6 @@ function updateLineChart(data) {
     const last7DaysNames = [];
     const countsPerDay = new Array(7).fill(0);
 
-    // Tạo mảng 7 ngày gần đây
     for (let i = 6; i >= 0; i--) {
         let d = new Date();
         d.setDate(d.getDate() - i);

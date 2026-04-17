@@ -168,7 +168,6 @@
     <a href="camera.html">📹 Giám sát</a>
     <a href="violations.html">🚫 Hồ sơ vi phạm</a>
     <a href="reports.html">📈 Báo cáo & thống kê</a>
-    <a href="settings.html">⚙️ Cài đặt hệ thống</a>
 </div>
 
 <div class="main">
@@ -176,21 +175,10 @@
 
     <div class="video-container">
         <label for="videoSelect" style="font-weight: 600; margin-right: 10px;">Chọn nguồn Camera:</label>
-        <select id="videoSelect">
-            <option value="videos/test1.mp4">Video Camera 1</option>
-            <option value="videos/test2.mp4">Video Camera 2</option>
-            <option value="Camera 1">AI Camera Real-time 1</option>
-            <option value="Camera 2">AI Camera Real-time 2</option>
-        </select>
-
-        <div class="media-wrapper">
-            <video id="videoPlayer" controls>
-                <source id="videoSource" src="videos/test1.mp4" type="video/mp4">
-            </video>
-
-            <img id="cameraStream" style="display:none;" alt="Live Stream" />
-        </div>
-    </div>
+        <select id="videoSelect"></select>
+<div class="media-wrapper">
+    <video id="videoPlayer" controls autoplay muted style="width:100%; display:none;"></video>
+</div>
 
     <div class="table-section">
         <h2>🚫 Vi phạm phát hiện mới nhất</h2>
