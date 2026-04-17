@@ -118,6 +118,20 @@
             background: #2563eb; color: white; border: none;
             padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;
         }
+        @media print {
+    .sidebar {
+        display: none !important;
+    }
+
+    .main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .btn-export {
+        display: none !important; /* ẩn nút */
+    }
+}
     </style>
 </head>
 <body>
