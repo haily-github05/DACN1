@@ -1,95 +1,83 @@
-const videoSelect = document.getElementById("videoSelect");
-const videoPlayer = document.getElementById("videoPlayer");
+window.addEventListener(
+    "load",
+    async () => {
 
-async function loadVideos() {
-    try {
-        const res = await fetch("http://127.0.0.1:5000/videos");
+        const select =
+            document.getElementById(
+                "videoSelect"
+            );
 
-        if (!res.ok) {
-            throw new Error("Không thể lấy danh sách video!");
+        const player =
+            document.getElementById(
+                "videoPlayer"
+            );
+
+        try {
+
+            const response =
+                await fetch(
+                    "http://127.0.0.1:5000/videos"
+                );
+
+            const videos =
+                await response.json();
+
+            videos.forEach(video => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    video.path;
+
+                option.textContent =
+                    video.name;
+
+                select.appendChild(
+                    option
+                );
+            });
+
+            if (videos.length > 0) {
+
+                player.src =
+                    `http://127.0.0.1:5000/videos/${videos[0].path}`;
+            }
+
+            select.addEventListener(
+                "change",
+                () => {
+
+                    player.src =
+                        `http://127.0.0.1:5000/videos/${select.value}`;
+
+                    player.load();
+
+                    player.play();
+                }
+            );
+
+        } catch (err) {
+
+            console.error(err);
         }
-
-        const data = await res.json();
-
-        // reset dropdown
-        videoSelect.innerHTML = "";
-
-        if (data.length === 0) {
-            const option = document.createElement("option");
-            option.textContent = "Không có video";
-            videoSelect.appendChild(option);
-            return;
-        }
-
-        // add option
-        data.forEach(video => {
-            const option = document.createElement("option");
-            option.value = video.path;
-            option.textContent = video.name;
-            videoSelect.appendChild(option);
-        });
-
-        // autoplay video đầu tiên
-        playVideo(data[0].path);
-
-    } catch (error) {
-        console.error("❌ Lỗi load video:", error);
-        showError("Không tải được danh sách video!");
     }
-}
-
-function playVideo(path) {
-    if (!path) return;
-
-    videoPlayer.style.display = "block";
-
-    // ✅ FIX Ở ĐÂY
-    const videoURL = `http://127.0.0.1:5000/videos/${path}`;
-
-    videoPlayer.src = videoURL;
-    videoPlayer.load();
-
-    videoPlayer.play().catch(err => {
-        console.warn("⚠️ Autoplay bị chặn:", err);
+);
+function updateViolationTable(vehicles) {
+    const tbody = document.getElementById("tableBody");
+    vehicles.forEach(v => {
+        if (v.violation) {
+            const row = `<tr>
+                <td><b>NEW</b></td>
+                <td><span class="badge badge-red">${v.violation}</span></td>
+                <td>${new Date().toLocaleTimeString()}</td>
+                <td>Camera 01</td>
+                <td><code>${v.plate}</code></td>
+                <td><img src="evidences/${v.image}" class="violation-img"></td>
+            </tr>`;
+            tbody.insertAdjacentHTML('afterbegin', row);
+        }
     });
-
-    console.log("🎬 Đang phát:", videoURL);
 }
-
-videoSelect.addEventListener("change", function () {
-    const selectedPath = this.value;
-    playVideo(selectedPath);
-});
-
-function showError(message) {
-    videoPlayer.style.display = "none";
-
-    let errorBox = document.getElementById("videoError");
-
-    if (!errorBox) {
-        errorBox = document.createElement("div");
-        errorBox.id = "videoError";
-        errorBox.style.color = "red";
-        errorBox.style.marginTop = "15px";
-        errorBox.style.fontWeight = "600";
-        videoPlayer.parentElement.appendChild(errorBox);
-    }
-
-    errorBox.textContent = message;
-}
-
-videoPlayer.addEventListener("error", () => {
-    console.error("❌ Không load được video");
-    showError("Video không tồn tại hoặc lỗi server!");
-});
-videoPlayer.addEventListener("waiting", () => {
-    console.log("⏳ Đang load video...");
-});
-
-videoPlayer.addEventListener("playing", () => {
-    console.log("✅ Video đang chạy");
-});
-
-window.addEventListener("DOMContentLoaded", () => {
-    loadVideos();
-});

@@ -1,0 +1,13 @@
+
+torch
+torchvision
+flask
+flask-cors
+flask-socketio
+eventlet
+opencv-python
+ultralytics
+easyocr
+mysql-connector-python
+deep-sort-realtime
+numpy

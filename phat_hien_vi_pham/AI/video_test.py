@@ -5,7 +5,7 @@ from ultralytics import YOLO
 model = YOLO("yolov8n.pt")
 
 # Đường dẫn video (đổi tên file của bạn)
-video_path = "videos\test1.mp4"
+# video_path = "videos\test1.mp4"
 
 cap = cv2.VideoCapture(video_path)
 

@@ -26,23 +26,38 @@ class ViolationModel:
     # 📊 GET ALL VIOLATIONS
     # ======================
     def get_all_violations(self):
-        conn = mysql.connector.connect(**self.config)
-        cursor = conn.cursor(dictionary=True)
+
+        conn = mysql.connector.connect(
+            **self.config
+        )
+
+        cursor = conn.cursor(
+            dictionary=True
+        )
 
         query = """
             SELECT 
-                id,
-                type,
-                time,
-                camera,
-                plate,
-                image,
-                status
-            FROM violations
-            ORDER BY time DESC
+                v.id,
+                v.vehicle_id,
+                v.type,
+                v.time,
+                v.camera,
+                v.plate,
+                v.image,
+                v.status,
+
+                ve.vehicle_type
+
+            FROM violations v
+
+            LEFT JOIN vehicles ve
+            ON v.vehicle_id = ve.vehicle_id
+
+            ORDER BY v.time DESC
         """
 
         cursor.execute(query)
+
         data = cursor.fetchall()
 
         cursor.close()

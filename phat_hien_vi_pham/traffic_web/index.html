@@ -201,6 +201,7 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Loại xe</th>
                     <th>Biển số</th>
                     <th>Loại vi phạm</th>
                     <th>Thời gian</th>
@@ -214,6 +215,39 @@
 </div>
 
 <script>
+function formatTime(gmtTime) {
+
+    if (!gmtTime) return "-";
+
+    const date = new Date(gmtTime);
+
+    const day =
+        String(date.getUTCDate()).padStart(2, "0");
+
+    const month =
+        String(date.getUTCMonth() + 1).padStart(2, "0");
+
+    const year =
+        date.getUTCFullYear();
+
+    const hours =
+        String(date.getUTCHours()).padStart(2, "0");
+
+    const minutes =
+        String(date.getUTCMinutes()).padStart(2, "0");
+
+    const seconds =
+        String(date.getUTCSeconds()).padStart(2, "0");
+
+    return `
+        <div style="line-height:1.4">
+            <b>${hours}:${minutes}:${seconds}</b><br>
+            <small style="color:gray">
+                ${day}/${month}/${year}
+            </small>
+        </div>
+    `;
+}
 async function updateDashboard() {
     try {
         const response = await fetch("http://127.0.0.1:5000/api/violations");
@@ -246,12 +280,17 @@ async function updateDashboard() {
                 <tr>
                     <td><b>${v.id ?? index + 1}</b></td>
                     <td>
+                        <span style="font-weight:600;">
+                            ${v.vehicle_type || "Không rõ"}
+                        </span>
+                    </td>
+                    <td>
                         <code style="background:#e2e8f0; padding:4px 8px; border-radius:4px;">
                             ${v.plate || v.vehicle_id || "N/A"}
                         </code>
                     </td>
                     <td>${v.type || "Không xác định"}</td>
-                    <td>${v.time || "---"}</td>
+                    <td>${formatTime(v.time || v.created_at)}</td>
                     <td>
                         <span class="badge ${statusClass}">
                             ${statusText}
@@ -273,6 +312,7 @@ async function updateDashboard() {
 }
 
 document.addEventListener("DOMContentLoaded", updateDashboard);
+
 </script>
 
 </body>

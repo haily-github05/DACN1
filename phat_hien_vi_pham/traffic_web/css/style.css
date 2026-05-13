@@ -67,3 +67,74 @@ th,td{
     margin-left: 260px; /* bằng width sidebar + khoảng cách */
     padding: 20px;
 }
+
+
+@media screen and (max-width: 768px) {
+
+    body {
+        flex-direction: column;
+    }
+
+    .sidebar {
+
+        position: relative;
+
+        width: 100%;
+
+        height: auto;
+
+        padding: 15px 0;
+    }
+
+    .sidebar h2 {
+
+        font-size: 1.5rem;
+    }
+
+    .sidebar a {
+
+        padding: 10px 20px;
+
+        font-size: 1rem;
+    }
+
+    .main {
+
+        margin-left: 0;
+
+        width: 100%;
+
+        padding: 15px;
+
+        box-sizing: border-box;
+    }
+
+    .video-monitor-wrapper {
+
+        flex-direction: column;
+    }
+
+    .video-left-column {
+
+        flex: 1 1 auto;
+
+        width: 100%;
+    }
+
+    .video-right-column {
+
+        width: 100%;
+    }
+
+    table {
+
+        display: block;
+
+        overflow-x: auto;
+    }
+
+    .media-wrapper {
+
+        width: 100%;
+    }
+}

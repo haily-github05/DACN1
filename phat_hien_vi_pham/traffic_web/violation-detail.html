@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ thống Tra cứu Vi phạm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         :root {
             --primary: #2563eb;
@@ -15,16 +15,14 @@
             --white: #ffffff;
             --danger: #ef4444;
             --success: #22c55e;
-            --warning: #f59e0b;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
+            background: var(--bg);
             margin: 0;
             padding: 40px 20px;
-            line-height: 1.6;
+            color: var(--text-main);
         }
 
         .card {
@@ -33,30 +31,19 @@
             margin: auto;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            overflow: hidden;
             border: 1px solid #e2e8f0;
+            overflow: hidden;
         }
 
-        /* Header */
         .card-header {
             padding: 24px 32px;
-            border-bottom: 1px solid #f1f5f9;
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: #fafafa;
+            border-bottom: 1px solid #f1f5f9;
         }
 
-        .card-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Layout chia cột */
         .card-body {
             padding: 32px;
             display: grid;
@@ -68,145 +55,106 @@
             .card-body { grid-template-columns: 1fr; }
         }
 
-        /* Thông tin chi tiết */
-        .info-section {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
         .info-group {
-            display: flex;
-            flex-direction: column;
-            border-bottom: 1px dashed #e2e8f0;
-            padding-bottom: 8px;
+            margin-bottom: 16px;
         }
 
         .label {
             font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
             color: var(--text-muted);
+            text-transform: uppercase;
             font-weight: 600;
         }
 
         .value {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--text-main);
+            font-size: 1.05rem;
             margin-top: 4px;
         }
 
-        /* Trạng thái Badge */
         .badge {
-            display: inline-block;
-            padding: 4px 12px;
+            padding: 5px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
         }
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-paid { background: #dcfce7; color: #166534; }
 
-        /* Hình ảnh */
-        .image-container {
-            position: relative;
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-paid {
+            background: #dcfce7;
+            color: #166534;
         }
 
         .image-container img {
             width: 100%;
-            height: auto;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border: 1px solid #e2e8f0;
-            transition: transform 0.3s ease;
-            cursor: zoom-in;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        .image-container img:hover {
-            transform: scale(1.02);
-        }
-
-        .img-caption {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-align: center;
-            margin-top: 10px;
-            font-style: italic;
-        }
-
-        /* Footer & Button */
         .card-footer {
             padding: 20px 32px;
             background: #f8fafc;
             border-top: 1px solid #f1f5f9;
-            text-align: left;
         }
 
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 24px;
+        .btn {
+            padding: 10px 18px;
             background: var(--primary);
             color: white;
             border: none;
             border-radius: 8px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-
-        .btn-back:hover {
-            background: #1d4ed8;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
     </style>
 </head>
+
 <body>
 
 <div class="card">
     <div class="card-header">
-        <h2><span style="color: var(--danger)">●</span> Chi tiết vi phạm</h2>
+        <h2>Chi tiết vi phạm</h2>
         <div id="status-badge"></div>
     </div>
 
     <div class="card-body">
-        <div class="info-section">
+        <div>
             <div class="info-group">
-                <span class="label">Mã biên bản</span>
-                <span class="value" id="id">---</span>
+                <div class="label">Mã biên bản</div>
+                <div class="value" id="id">---</div>
             </div>
+
             <div class="info-group">
-                <span class="label">Biển số xe</span>
-                <span class="value" id="plate" style="color: var(--primary); font-weight: 700;">---</span>
+                <div class="label">Biển số</div>
+                <div class="value" id="plate">---</div>
             </div>
+
             <div class="info-group">
-                <span class="label">Loại vi phạm</span>
-                <span class="value" id="type" style="color: var(--danger)">---</span>
+                <div class="label">Loại vi phạm</div>
+                <div class="value" id="type">---</div>
             </div>
+
             <div class="info-group">
-                <span class="label">Thời gian ghi nhận</span>
-                <span class="value" id="time">---</span>
+                <div class="label">Thời gian</div>
+                <div class="value" id="time">---</div>
             </div>
+
             <div class="info-group">
-                <span class="label">Camera giám sát</span>
-                <span class="value" id="camera">---</span>
+                <div class="label">Camera</div>
+                <div class="value" id="camera">---</div>
             </div>
         </div>
 
         <div class="image-container">
-            <img id="image" src="https://via.placeholder.com/400x300?text=Đang+tải+ảnh..." alt="Ảnh bằng chứng">
-            <div class="img-caption">Hình ảnh trích xuất từ hệ thống CCTV</div>
+            <img id="image" src="https://via.placeholder.com/400x300?text=No+Image" />
         </div>
     </div>
 
     <div class="card-footer">
-        <button class="btn-back" onclick="goBack()">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Quay lại danh sách
-        </button>
+        <button class="btn" onclick="goBack()">Quay lại</button>
     </div>
 </div>
 
@@ -215,37 +163,54 @@ const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
 const BASE_URL = "http://127.0.0.1:5000";
 
+function formatTime(t) {
+    if (!t) return "-";
+    const d = new Date(t);
+    return d.toLocaleString("vi-VN");
+}
+
 async function loadDetail() {
     if (!id) return;
-    
+
     try {
         const res = await fetch(`${BASE_URL}/api/violations/${id}`);
         const v = await res.json();
 
-        document.getElementById("id").innerText = `${v.id}`;
-        document.getElementById("plate").innerText = v.plate;
-        document.getElementById("type").innerText = v.type;
-        document.getElementById("time").innerText = v.time;
-        document.getElementById("camera").innerText = v.camera || "Trạm giám sát 01";
+        document.getElementById("id").innerText = v.id ?? "-";
+        document.getElementById("plate").innerText = v.plate ?? "-";
+        document.getElementById("type").innerText = v.type ?? "-";
+        document.getElementById("time").innerText = formatTime(v.time);
+        document.getElementById("camera").innerText = v.camera ?? "Camera 01";
 
-        // Xử lý Badge trạng thái
-        const badgeBox = document.getElementById("status-badge");
-        const statusText = v.status || "Chưa xử lý";
-        let statusClass = "status-pending";
-        
-        if(statusText.toLowerCase() === "đã nộp phạt" || statusText.toLowerCase() === "đã xử lý") {
-            statusClass = "status-paid";
-        }
-        
-        badgeBox.innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+        // status badge
+        const badge = document.getElementById("status-badge");
+        const status = (v.status || "pending").toLowerCase();
+
+        badge.innerHTML = `
+            <span class="badge ${
+                status.includes("đã") ? "status-paid" : "status-pending"
+            }">
+                ${v.status || "Chưa xử lý"}
+            </span>
+        `;
+
+        // IMAGE FIX CHUẨN
+        const img = document.getElementById("image");
 
         if (v.image) {
-            document.getElementById("image").src = BASE_URL + v.image;
+            // đảm bảo không bị // hoặc thiếu /
+            const cleanPath = v.image.startsWith("/")
+                ? v.image
+                : "/evidences/" + v.image;
+
+            img.src = BASE_URL + cleanPath;
+        } else {
+            img.src = "https://via.placeholder.com/400x300?text=No+Image";
         }
 
     } catch (err) {
-        console.error("Lỗi kết nối API:", err);
-        alert("Không thể tải dữ liệu. Vui lòng kiểm tra Server!");
+        console.error(err);
+        alert("Không load được dữ liệu!");
     }
 }
 
