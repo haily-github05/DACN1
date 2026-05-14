@@ -59,7 +59,6 @@ async function loadViolations() {
                 <td><b>${v.id}</b></td>
                 <td><span class="badge badge-red">${v.type || "Unknown"}</span></td>
                 <td>${formatTime(v.time)}</td>
-                <td>${v.camera || "-"}</td>
                 <td><code style="background:#eee;padding:3px 6px;border-radius:4px;">${v.plate || "N/A"}</code></td>
                 <td>${v.image?`<img src="http://127.0.0.1:5000/evidences/${v.image}"class="violation-img"onerror="this.src='https://via.placeholder.com/120x80?text=No+Image'">`:"No Image"}</td>
             `;

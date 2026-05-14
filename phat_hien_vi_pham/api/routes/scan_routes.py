@@ -27,7 +27,8 @@ scan_bp = Blueprint("scan", __name__)
 # =========================
 
 db_config = {
-    "host": "localhost",
+    "host": "127.0.0.1",
+    "port": 3308,
     "user": "root",
     "password": "",
     "database": "traffic_db"
@@ -39,16 +40,18 @@ db_config = {
 
 vehicle_map = {
     "motorcycle": 1,
-    "car": 2,
-    "bus": 3,
-    "truck": 4
+    "car": 2,         
+    "bus": 3,        
+    "truck": 4,    
+    "person": 5      
 }
 
 vehicle_name_vi = {
     "motorcycle": "Xe máy",
     "car": "Ô tô",
     "bus": "Xe buýt",
-    "truck": "Xe tải"
+    "truck": "Xe tải",
+    "person": "Ngừơi đi bộ"
 }
 
 # =========================
@@ -65,25 +68,13 @@ def scan():
 
         data = request.json or {}
 
-        camera_map = {
-            "camera1": "Camera 1",
-            "camera2": "Camera 2",
-            "camera3": "Camera 3",
-            "camera4": "Camera 4"
-        }
-
-        camera_raw = data.get("camera", "Unknown Camera")
-        video_id = None
-
-        if camera_raw == "camera1":
-            video_id = 1
-        elif camera_raw == "camera2":
-            video_id = 2
-        elif camera_raw == "camera3":
-            video_id = 3
-        elif camera_raw == "camera4":
-            video_id = 4
-
+        video_id = data.get("video_id")
+        if not video_id:
+            return jsonify({
+                "success": False,
+                "error": "Missing video_id"
+            })
+            
         if "image" not in data:
             return jsonify({
                 "success": False,
@@ -244,7 +235,7 @@ def scan():
                             video_id,
                             plate,
                             image_name,
-                            "Chờ xử lý"
+                            "pending"
                         )
                     )
 

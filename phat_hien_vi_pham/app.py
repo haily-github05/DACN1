@@ -6,9 +6,10 @@ import mysql.connector
 from api.routes.scan_routes import scan_bp
 from api.models.violations import ViolationModel
 from camera import camera_bp
-
+from api.routes.violation_routes import violation_bp
 app = Flask(__name__)
 app.register_blueprint(scan_bp)
+app.register_blueprint(violation_bp)
 CORS(app, resources={
     r"/*": {
         "origins": "*"
@@ -18,7 +19,8 @@ CORS(app, resources={
 app.register_blueprint(camera_bp)
 
 db_config = {
-    "host": "localhost",
+    "host": "127.0.0.1",
+    "port": 3308, 
     "user": "root",
     "password": "",
     "database": "traffic_db"
@@ -40,12 +42,6 @@ def get_image(filename):
         "Access-Control-Allow-Origin"
     ] = "*"
     return response
-
-@app.route("/api/violations", methods=["GET"])
-def get_violations():
-    return jsonify(
-        violation_model.get_all_violations()
-    )
 
 @app.route('/api/violations/<int:id>', methods=['GET'])
 def get_violation(id):
@@ -92,7 +88,8 @@ def serve_video(filename):
 def get_videos():
     try:
         conn = mysql.connector.connect(
-            host="localhost",
+            host="127.0.0.1",
+            port=3308,
             user="root",
             password="",
             database="traffic_db"

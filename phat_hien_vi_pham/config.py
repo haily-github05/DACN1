@@ -1,5 +1,6 @@
-MYSQL_CONFIG = {
-    "host": "localhost",
+DB_CONFIG = {
+    "host": "127.0.0.1",
+    "port": 3308,
     "user": "root",
     "password": "",
     "database": "traffic_db"

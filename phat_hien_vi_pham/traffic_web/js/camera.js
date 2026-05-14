@@ -1,29 +1,24 @@
-const video =
-    document.getElementById("videoPlayer");
-
-const overlay =
-    document.getElementById("overlayCanvas");
-
-const ctx =
-    overlay.getContext("2d");
-
-const captureCanvas =
-    document.getElementById("captureCanvas");
-
-const captureCtx =
-    captureCanvas.getContext("2d");
-
-const scanResult =
-    document.getElementById("scanResult");
-
-const btnStartScan =
-    document.getElementById("btnStartScan");
-
-const btnStopScan =
-    document.getElementById("btnStopScan");
-
-const tableBody =
-    document.getElementById("tableBody");
+function formatStatus(status) {
+    switch (status) {
+        case "pending":
+            return "Chờ xử lý";
+        case "approved":
+            return "Đã xử lý";
+        case "rejected":
+            return "Từ chối";
+        default:
+            return status;
+    }
+}
+const video = document.getElementById("videoPlayer");
+const overlay = document.getElementById("overlayCanvas");
+const ctx = overlay.getContext("2d");
+const captureCanvas = document.getElementById("captureCanvas");
+const captureCtx = captureCanvas.getContext("2d");
+const scanResult = document.getElementById("scanResult");
+const btnStartScan = document.getElementById("btnStartScan");
+const btnStopScan = document.getElementById("btnStopScan");
+const tableBody = document.getElementById("tableBody");
 
 let scanning = false;
 let autoScan = false;
@@ -69,7 +64,9 @@ async function scanFrame() {
             captureCanvas.width,
             captureCanvas.height
         );
-        const camera = document.getElementById("videoSelect").value;
+        const videoSelect = document.getElementById("videoSelect");
+        const video_id = parseInt(videoSelect.value || 0);
+        const cameraName = videoSelect.selectedOptions[0].textContent;
         const image =
             captureCanvas.toDataURL(
                 "image/png",
@@ -92,7 +89,7 @@ async function scanFrame() {
 
                     body: JSON.stringify({
                         image,
-                        camera
+                        video_id: video_id
                     })
                 }
             );
@@ -100,8 +97,8 @@ async function scanFrame() {
         const data =
             await response.json();
 
-        drawResult(data);
-
+        drawResult(data.data);
+console.log(data.data);
     } catch (err) {
 
         console.log(err);
@@ -189,7 +186,7 @@ function addViolationRow(v) {
             ${new Date().toLocaleTimeString()}
         </td>
 
-        <td>Camera 1</td>
+        <td>${v.camera_name || "Không rõ"}</td>
 
         <td>
             <code style="background:#eee;padding:3px 6px;">
@@ -205,8 +202,8 @@ function addViolationRow(v) {
         </td>
 
         <td>
-            <span class="badge badge-green">
-                Chờ xử lý
+            <span class="badge">
+                ${formatStatus(v.status || "pending")}
             </span>
         </td>
     `;

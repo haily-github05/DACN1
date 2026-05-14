@@ -4,27 +4,20 @@ class ViolationModel:
     def __init__(self, db_config):
         self.config = db_config
 
-    # ======================
-    # ➕ INSERT VIOLATION
-    # ======================
-    def log_violation(self, v_type, camera, plate, image_path, status="NEW"):
+    def log_violation(self,vehicle_id, plate, v_type, video_id, image_path, status="pending"):
         conn = mysql.connector.connect(**self.config)
         cursor = conn.cursor()
 
         query = """
-            INSERT INTO violations (type, camera, plate, image, status)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO violations (vehicle_id, plate, type, video_id, image, status)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
-
-        cursor.execute(query, (v_type, camera, plate, image_path, status))
+        cursor.execute(query, (vehicle_id, plate, v_type, video_id, image_path, status))
         conn.commit()
 
         cursor.close()
         conn.close()
-
-    # ======================
-    # 📊 GET ALL VIOLATIONS
-    # ======================
+        
     def get_all_violations(self):
 
         conn = mysql.connector.connect(
@@ -41,7 +34,7 @@ class ViolationModel:
                 v.vehicle_id,
                 v.type,
                 v.time,
-                v.camera,
+                v.video_id,
                 v.plate,
                 v.image,
                 v.status,

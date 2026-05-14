@@ -5,9 +5,6 @@ class VehicleModel:
     def __init__(self, db_config):
         self.config = db_config
 
-    # -----------------------------
-    # 1. Thêm hoặc cập nhật vehicle
-    # -----------------------------
     def update_vehicle(self, license_plate, vehicle_type):
         conn = mysql.connector.connect(**self.config)
         cursor = conn.cursor()

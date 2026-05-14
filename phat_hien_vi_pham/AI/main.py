@@ -19,10 +19,11 @@ tracker = DeepSort(max_age=30)
 lp_detector = LicensePlateDetector("yolov8n.pt")
 
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',
-    'database': 'traffic_db'
+    "host": "127.0.0.1",
+    "port": 3308,
+    "user": "root",
+    "password": "",
+    "database": "traffic_db"
 }
 
 v_db = VehicleModel(DB_CONFIG)

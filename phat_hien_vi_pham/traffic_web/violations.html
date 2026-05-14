@@ -224,15 +224,14 @@
     <div class="table-container">
         <table>
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Loai xe</th>
-                    <th>Biển số</th>
-                    <th>Loại vi phạm</th>
-                    <th>Thời gian</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
-                </tr>
+                <th>ID</th>
+                <th>Loại xe</th>
+                <th>Camera</th>
+                <th>Biển số</th>
+                <th>Loại vi phạm</th>
+                <th>Thời gian</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
             </thead>
             <tbody id="violationBody">
                 </tbody>
@@ -244,13 +243,16 @@
         <h2>📊 Xem trước báo cáo</h2>
         <table border="1" width="100%" style="border-collapse:collapse">
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Biển số</th>
-                    <th>Loại</th>
-                    <th>Thời gian</th>
-                    <th>Trạng thái</th>
-                </tr>
+                    <tr>
+                        <th>ID</th>
+                        <th>Loại xe</th>
+                        <th>Camera</th>
+                        <th>Biển số</th>
+                        <th>Loại vi phạm</th>
+                        <th>Thời gian</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
             </thead>
             <tbody id="previewBody"></tbody>
         </table>
@@ -263,8 +265,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-    console.log("🔥 violation.js loaded");
-
     loadViolations();
 
     document.getElementById("searchPlate").addEventListener("input", loadViolations);
@@ -276,8 +276,6 @@
 let autoReload;
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("🔥 violation.js loaded");
-
     loadViolations();
 
     const search = document.getElementById("searchPlate");
@@ -419,31 +417,58 @@ async function loadViolations() {
                 } 
 
                 html += `
-                    <tr>
-                        <td><b>${v.id ?? index + 1}</b></td>
-                        <td>
-                            <span style="font-weight:600;">
-                                ${v.vehicle_type || "Không rõ"}
-                            </span>
-                        </td>
-                        <td>
-                            <code style="background:#e2e8f0; padding:4px 8px; border-radius:4px;">
-                                ${v.plate || "N/A"}
-                            </code>
-                        </td>
-                        <td>${v.type || "N/A"}</td>
-                        <td>${formatTime(v.time || v.created_at)}</td>
-                        <td>
-                            <span class="badge ${statusClass}">
-                                ${statusText}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn-action" onclick="goDetail(${v.id})">
-                                Chi tiết
-                            </button>
-                        </td>
-                    </tr>
+                <tr>
+
+                    <td><b>${v.id ?? index + 1}</b></td>
+
+                    <td>
+                        <span style="font-weight:600;">
+                            ${v.vehicle_type || "Không rõ"}
+                        </span>
+                    </td>
+
+                    <!-- CAMERA -->
+                    <td>
+                        <div style="font-weight:600;color:#2563eb">
+                            ${v.camera_name || "Không rõ"}
+                        </div>
+
+                        <small style="color:gray">
+                            ${v.camera_location || ""}
+                        </small>
+                    </td>
+
+                    <!-- BIỂN SỐ -->
+                    <td>
+                        <code style="
+                            background:#e2e8f0;
+                            padding:4px 8px;
+                            border-radius:4px;
+                        ">
+                            ${v.plate || "N/A"}
+                        </code>
+                    </td>
+
+                    <td>${v.type || "N/A"}</td>
+
+                    <td>${formatTime(v.time || v.created_at)}</td>
+
+                    <td>
+                        <span class="badge ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+
+                    <td>
+                        <button
+                            class="btn-action"
+                            onclick="goDetail(${v.id})"
+                        >
+                            Chi tiết
+                        </button>
+                    </td>
+
+                </tr>
                 `;
             });
         }
@@ -514,10 +539,24 @@ async function loadPreviewData() {
     previewBody.innerHTML = filtered.map((v, index) => `
         <tr>
             <td>${v.id ?? index + 1}</td>
+
             <td>${v.plate || "N/A"}</td>
+
             <td>${v.type || "N/A"}</td>
+
             <td>${v.time || "---"}</td>
-            <td>${(v.status || "").includes("verified") ? "Đã xác minh" : "Chờ xử lý"}</td>
+
+            <td>
+                ${v.camera_name || "Không rõ"}
+                <br>
+                <small>${v.camera_location || ""}</small>
+            </td>
+
+            <td>
+                ${(v.status || "").includes("verified")
+                    ? "Đã xác minh"
+                    : "Chờ xử lý"}
+            </td>
         </tr>
     `).join('');
 }

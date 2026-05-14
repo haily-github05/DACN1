@@ -5,10 +5,11 @@ from datetime import datetime
 class TrafficDatabase:
     def __init__(self):
         self.config = {
-            'host': 'localhost',
-            'user': 'root',
-            'password': '',
-            'database': 'traffic_db' # Tên DB bạn tạo trong XAMPP
+            "host": "127.0.0.1",
+            "port": 3308, 
+            "user": "root",
+            "password": "", 
+            "database": "traffic_db"
         }
 
     def get_connection(self):
