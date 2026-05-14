@@ -1,12 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hồ Sơ Vi Phạm | Traffic AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
     <style>
+
         :root {
             --primary-color: #2563eb;
             --bg-color: #f8fafc;
@@ -16,14 +19,15 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: "Inter", sans-serif;
             background-color: var(--bg-color);
             margin: 0;
             display: flex;
             color: var(--text-main);
         }
 
-        /* Sidebar - Đồng bộ hệ thống */
+        /* SIDEBAR */
+
         .sidebar {
             width: 260px;
             background: var(--sidebar-color);
@@ -56,7 +60,8 @@
             border-left: 4px solid var(--primary-color);
         }
 
-        /* Main Content */
+        /* MAIN */
+
         .main {
             margin-left: 260px;
             padding: 30px;
@@ -70,7 +75,8 @@
             margin-bottom: 30px;
         }
 
-        /* Bộ lọc & Tìm kiếm */
+        /* FILTER */
+
         .filter-section {
             background: white;
             padding: 20px;
@@ -80,6 +86,7 @@
             display: flex;
             gap: 15px;
             align-items: flex-end;
+            flex-wrap: wrap;
         }
 
         .filter-group {
@@ -94,7 +101,8 @@
             color: #64748b;
         }
 
-        input, select {
+        input,
+        select {
             padding: 10px;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -113,9 +121,12 @@
             transition: 0.2s;
         }
 
-        .btn-search:hover { background: #1d4ed8; }
+        .btn-search:hover {
+            background: #1d4ed8;
+        }
 
-        /* Bảng hồ sơ */
+        /* TABLE */
+
         .table-container {
             background: white;
             border-radius: 12px;
@@ -146,9 +157,12 @@
             font-size: 0.9rem;
         }
 
-        tr:hover { background-color: #f8fafc; }
+        tr:hover {
+            background-color: #f8fafc;
+        }
 
-        /* Trạng thái */
+        /* BADGE */
+
         .badge {
             padding: 5px 12px;
             border-radius: 20px;
@@ -156,9 +170,22 @@
             font-weight: 600;
         }
 
-        .badge-pending { background: #fef9c3; color: #854d0e; }
-        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
 
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* BUTTON */
 
         .btn-action {
             background: #f1f5f9;
@@ -169,80 +196,91 @@
             font-size: 0.8rem;
         }
 
-        .btn-action:hover { background: #e2e8f0; }
+        .btn-action:hover {
+            background: #e2e8f0;
+        }
+
+        /* MODAL */
+
+        #previewModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            border-radius: 12px;
+            max-height: 85vh;
+            overflow: auto;
+        }
 
     </style>
 </head>
+
 <body>
-
-<div class="sidebar">
-    <h2>🚦 Traffic System</h2>
-    <a href="index.html">📊 Tổng quan</a>
-    <a href="camera.html">📹 Giám sát</a>
-    <a href="violations.html">🚫 Hồ sơ vi phạm</a>
-    <a href="reports.html">📈 Báo cáo & thống kê</a>
-</div>
-
-<div class="main">
-    <div class="header-flex">
-        <h1>🚫 Quản lý hồ sơ vi phạm</h1>
-        <button class="btn-search" style="background: #10b981;" onclick="openPreview()">+ Xuất báo cáo (Excel)</button>
+    <div class="sidebar">
+        <h2>🚦 Traffic System</h2>
+        <a href="index.html">📊 Tổng quan</a>
+        <a href="camera.html">📹 Giám sát</a>
+        <a href="violations.html">🚫 Hồ sơ vi phạm</a>
+        <a href="reports.html">📈 Báo cáo & thống kê</a>
     </div>
 
-    <div class="filter-section">
-        <div class="filter-group">
-            <label>Tìm kiếm biển số</label>
-            <input type="text" id="searchPlate" placeholder="VD: 29A-12345...">
+    <div class="main">
+        <div class="header-flex">
+            <h1>🚫 Quản lý hồ sơ vi phạm</h1>
+            <button class="btn-search" style="background:#10b981" onclick="openPreview()">
+                ⬇ Xuất báo cáo Excel
+            </button>
         </div>
-        <div class="filter-group">
-            <label>Loại vi phạm</label>
-            <select id="filterType">
-                <option value="all">Tất cả loại lỗi</option>
-                <option value="red_light">Vượt đèn đỏ</option>
-                <option value="no_helmet">Không đội mũ bảo hiểm</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Loại xe</label>
-            <select id="filterVehicle">
-                <option value="all">Tất cả xe</option>
-                <option value="car">Ô tô</option>
-                <option value="motobike">Xe máy</option>
-                <option value="truck">Xe tải</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Trạng thái</label>
-            <select id="filterStatus">
-                <option value="all">Tất cả trạng thái</option>
-                <option value="pending">Chờ xử lý</option>
-                <option value="verified">Đã xác minh</option>
-            </select>
-        </div>
-    </div>
 
-    <div class="table-container">
-        <table>
-            <thead>
-                <th>ID</th>
-                <th>Loại xe</th>
-                <th>Camera</th>
-                <th>Biển số</th>
-                <th>Loại vi phạm</th>
-                <th>Thời gian</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-            </thead>
-            <tbody id="violationBody">
-                </tbody>
-        </table>
-    </div>
-</div>
-<div id="previewModal" style="display:none;position:fixed; top:0; left:0; width:100%; height:100%;background:rgba(0,0,0,0.5);">
-    <div style="background:white;width:80%;margin:50px auto;padding:20px;border-radius:10px;max-height:80%;overflow:auto;">
-        <h2>📊 Xem trước báo cáo</h2>
-        <table border="1" width="100%" style="border-collapse:collapse">
-            <thead>
+        <div class="filter-section">
+            <div class="filter-group">
+                <label>Tìm kiếm biển số</label>
+                <input type="text" id="searchPlate" placeholder="VD: 29A-12345"/>
+            </div>
+
+            <div class="filter-group">
+                <label>Loại vi phạm</label>
+                <select id="filterType">
+                    <option value="all">Tất cả lỗi</option>
+                    <option value="red_light">Vượt đèn đỏ</option>
+                    <option value="no_helmet">Không đội mũ</option>
+                    <option value="wrong_lane">Sai làn</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Loại xe</label>
+                <select id="filterVehicle">
+                    <option value="all">Tất cả xe</option>
+                    <option value="car">Ô tô</option>
+                    <option value="motobike">Xe máy</option>
+                    <option value="truck">Xe tải</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Trạng thái</label>
+                <select id="filterStatus">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="pending">Chờ xử Đã xác minh</option>
+                    <option value="rejected">Đã từ chối</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
                     <tr>
                         <th>ID</th>
                         <th>Loại xe</th>
@@ -253,347 +291,588 @@
                         <th>Trạng thái</th>
                         <th>Thao tác</th>
                     </tr>
-            </thead>
-            <tbody id="previewBody"></tbody>
-        </table>
-        <br>
-        <br>
-        <button onclick="exportExcel()">⬇ Xuất Excel</button>
-        <button onclick="closePreview()">❌ Đóng</button>
+                </thead>
+                <tbody id="violationBody"></tbody>
+            </table>
+        </div>
+
     </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <div id="previewModal">
+
+        <div class="modal-content">
+            <h2>📊 Xem trước báo cáo</h2>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Biển số</th>
+                        <th>Loại xe</th>
+                        <th>Loại vi phạm</th>
+                        <th>Camera</th>
+                        <th>Thời gian</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+            </table>
+            <br>
+
+            <button class="btn-search"onclick="exportExcel()">
+                ⬇ Xuất Excel
+            </button>
+
+            <button class="btn-search" style="background:#ef4444"onclick="closePreview()">
+                ❌ Đóng
+            </button>
+
+        </div>
+
+    </div>
+
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-    loadViolations();
 
-    document.getElementById("searchPlate").addEventListener("input", loadViolations);
-    document.getElementById("filterType").addEventListener("change", loadViolations);
-    document.getElementById("filterStatus").addEventListener("change", loadViolations);
-    document.getElementById("filterVehicle").addEventListener("change", loadViolations);
-    setInterval(loadViolations, 3000);
-});
-let autoReload;
-
-document.addEventListener("DOMContentLoaded", () => {
-    loadViolations();
-
-    const search = document.getElementById("searchPlate");
-    const type = document.getElementById("filterType");
-    const status = document.getElementById("filterStatus");
-
-    search.addEventListener("input", () => {
-        clearInterval(autoReload);
         loadViolations();
+        document.getElementById("searchPlate").addEventListener("input", loadViolations);
+        document.getElementById("filterType").addEventListener("change", loadViolations);
+        document.getElementById("filterVehicle").addEventListener("change", loadViolations);
+        document.getElementById("filterStatus").addEventListener("change", loadViolations);
+        setInterval(loadViolations, 5000);
+
     });
 
-    type.addEventListener("change", loadViolations);
-    status.addEventListener("change", loadViolations);
+    function formatTime(gmtTime) {
 
-    autoReload = setInterval(loadViolations, 5000);
-});
-function formatTime(gmtTime) {
+        if (!gmtTime) return "-";
+        const date = new Date(gmtTime);
+        const day = String(date.getUTCDate()).padStart(2, "0");
+        const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+        const year = date.getUTCFullYear();
+        const hours = String(date.getUTCHours()).padStart(2, "0");
+        const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+        const seconds = String(date.getUTCSeconds()).padStart(2, "0");
 
-    if (!gmtTime) return "-";
+        return `
+            <div style="line-height:1.4">
+                <b>${hours}:${minutes}:${seconds}</b>
+                <br>
+                <small style="color:gray">
+                    ${day}/${month}/${year}
+                </small>
+            </div>
+        `;
+    }
 
-    const date = new Date(gmtTime);
+    async function loadViolations() {
 
-    const day =
-        String(date.getUTCDate()).padStart(2, "0");
+        try {
 
-    const month =
-        String(date.getUTCMonth() + 1).padStart(2, "0");
+            const res = await fetch("http://127.0.0.1:5000/api/violations");
+            const data = await res.json();
+            const plateSearch = document.getElementById("searchPlate").value.trim().toLowerCase();
+            const typeFilter = document.getElementById("filterType").value;
+            const vehicleFilter = document.getElementById("filterVehicle").value;
+            const statusFilter = document.getElementById("filterStatus").value;
+            const filtered =
+                data.filter(v => {
 
-    const year =
-        date.getUTCFullYear();
+                    const plate =
+                        (v.plate || "")
+                        .toLowerCase();
 
-    const hours =
-        String(date.getUTCHours()).padStart(2, "0");
+                    const type =
+                        (v.type || "")
+                        .toLowerCase();
 
-    const minutes =
-        String(date.getUTCMinutes()).padStart(2, "0");
+                    const vehicle =
+                        (v.vehicle_type || "")
+                        .toLowerCase();
 
-    const seconds =
-        String(date.getUTCSeconds()).padStart(2, "0");
+                    const status =
+                        (v.status || "")
+                        .toLowerCase();
 
-    return `
-        <div style="line-height:1.4">
-            <b>${hours}:${minutes}:${seconds}</b><br>
-            <small style="color:gray">
-                ${day}/${month}/${year}
-            </small>
-        </div>
-    `;
-}
-async function loadViolations() {
-    try {
-        const res = await fetch("http://127.0.0.1:5000/api/violations");
-        let data = await res.json();
+                    const matchPlate =
+                        plate.includes(plateSearch);
 
-        const plateSearch = document.getElementById("searchPlate").value.trim().toLowerCase();
-        const typeFilter = document.getElementById("filterType").value;
-        const statusFilter = document.getElementById("filterStatus").value;
-        const vehicleFilter = document.getElementById("filterVehicle").value; // ✅ FIX
+                    // TYPE
 
-        const filtered = data.filter(v => {
-            const plate = (v.plate || "").toLowerCase();
-            const type = (v.type || "").toLowerCase();
-            const status = (v.status || "").toLowerCase();
-            const vehicle = (v.vehicle_type || "").toLowerCase(); // ✅ FIX
+                    const matchType =
 
-            const matchPlate = plate.includes(plateSearch);
+                        typeFilter === "all" ||
 
-            const matchType = (() => {
-                if (typeFilter === "all") return true;
+                        (
+                            typeFilter === "red_light" &&
+                            (
+                                type.includes("red") ||
+                                type.includes("đèn đỏ")
+                            )
+                        ) ||
 
-                if (typeFilter === "red_light") {
-                    return type.includes("red") || type.includes("đèn đỏ");
-                }
+                        (
+                            typeFilter === "no_helmet" &&
+                            (
+                                type.includes("helmet") ||
+                                type.includes("mũ")
+                            )
+                        ) ||
 
-                if (typeFilter === "no_helmet") {
-                    return type.includes("helmet") || type.includes("mũ");
-                }
+                        (
+                            typeFilter === "wrong_lane" &&
+                            (
+                                type.includes("lane") ||
+                                type.includes("làn")
+                            )
+                        );
 
-                if (typeFilter === "wrong_lane") {
-                    return type.includes("lane") || type.includes("làn");
-                }
+                    // VEHICLE
 
-                return false;
-            })();
+                    const matchVehicle =
 
-            const matchVehicle = (() => {
-                if (vehicleFilter === "all") return true;
+                        vehicleFilter === "all" ||
 
-                if (vehicleFilter === "car") return vehicle.includes("car") || vehicle.includes("ô tô");
-                if (vehicleFilter === "motobike") return vehicle.includes("xe máy");
-                if (vehicleFilter === "truck") return vehicle.includes("xe tải");
+                        (
+                            vehicleFilter === "car" &&
+                            (
+                                vehicle.includes("car") ||
+                                vehicle.includes("ô tô")
+                            )
+                        ) ||
 
-                return false;
-            })();
+                        (
+                            vehicleFilter === "motobike" &&
+                            vehicle.includes("xe máy")
+                        ) ||
 
-            const matchStatus = (() => {
-                if (statusFilter === "all") return true;
+                        (
+                            vehicleFilter === "truck" &&
+                            vehicle.includes("xe tải")
+                        );
 
-                if (statusFilter === "pending") {
-                    return status === "pending" || status.includes("chờ");
-                }
+                    // STATUS
 
-                if (statusFilter === "verified") {
-                    return status === "verified" || status.includes("xác minh");
-                }
+                    const matchStatus =
 
-                return false;
-            })();
+                        statusFilter === "all" ||
 
-            return matchPlate && matchType && matchStatus && matchVehicle; // ✅ FIX
-        });
+                        (
+                            statusFilter === "pending" &&
+                            status === "pending"
+                        ) ||
 
-        filtered.sort((a, b) => {
-            return new Date((b.time || "").replace(" ", "T")) -
-                   new Date((a.time || "").replace(" ", "T"));
-        });
+                        (
+                            statusFilter === "verified" &&
+                            status === "verified"
+                        ) ||
 
-        let html = "";
+                        (
+                            statusFilter === "rejected" &&
+                            status === "rejected"
+                        );
+
+                    return (
+                        matchPlate &&
+                        matchType &&
+                        matchVehicle &&
+                        matchStatus
+                    );
+
+                });
+
+            filtered.sort((a, b) => {
+
+                return (
+                    new Date(
+                        (b.time || "")
+                        .replace(" ", "T")
+                    ) -
+
+                    new Date(
+                        (a.time || "")
+                        .replace(" ", "T")
+                    )
+                );
+
+            });
+
+            let html = "";
+
+            if (filtered.length === 0) {
+                html = `
+                    <tr>
+                        <td colspan="8" style=" padding:30px; color:gray;">
+                            Không có dữ liệu
+                        </td>
+                    </tr>
+                `;
+            }
+
+            else {
+
+                filtered.forEach((v, index) => {
+
+                    const status =
+                        (v.status || "")
+                        .toLowerCase();
+
+                    let statusClass =
+                        "badge-pending";
+
+                    let statusText =
+                        "Chờ xử lý";
+
+                    if (status === "verified") {
+
+                        statusClass =
+                            "badge-success";
+
+                        statusText =
+                            "Đã xác minh";
+                    }
+
+                    if (status === "rejected") {
+
+                        statusClass =
+                            "badge-rejected";
+
+                        statusText =
+                            "Đã từ chối";
+                    }
+
+                    html += `
+                        <tr>
+                            <td>
+                                <b>
+                                    ${v.id ?? index + 1}
+                                </b>
+                            </td>
+                            <td>
+                                ${v.vehicle_type || "Không rõ"}
+                            </td>
+                            <td>
+                                <div style="font-weight:600;color:#2563eb;">
+                                    ${v.camera_name || "Không rõ"}
+                                </div>
+                                <small style="color:gray">
+                                    ${v.camera_location || ""}
+                                </small>
+                            </td>
+                            <td>
+                                <code style="background:#e2e8f0;padding:4px 8px;border-radius:4px;">
+                                    ${v.plate || "N/A"}
+                                </code>
+                            </td>
+                            <td>
+                                ${v.type || "N/A"}
+                            </td>
+                            <td>
+                                ${formatTime(v.time || v.created_at)}
+                            </td>
+                            <td>
+                                <span class="badge ${statusClass}">
+                                    ${statusText}
+                                </span>
+                                <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;">
+                                    <button class="btn-action"style="background:#dcfce7;color:#166534;"onclick="verifyViolation(${v.id})">
+                                        ✔ Xác minh
+                                    </button>
+
+                                    <button class="btn-action" style="background:#fee2e2;color:#991b1b;"onclick="rejectViolation(${v.id})">
+                                        ✖ Từ chối
+                                    </button>
+
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn-action"onclick="goDetail(${v.id})">
+                                    Chi tiết
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+
+                });
+
+            }
+            document.getElementById("violationBody").innerHTML = html;
+        }
+        catch (err) {
+            console.error(err);
+        }
+    }
+
+    function goDetail(id) {
+        window.location.href =`violation-detail.html?id=${id}`;
+    }
+
+    async function verifyViolation(id) {
+        if (!confirm("Xác minh hồ sơ?"))
+            return;
+        const res = await fetch(`http://127.0.0.1:5000/api/violations/${id}/status`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    status: "verified"
+                })
+            }
+        );
+
+        const result = await res.json();
+
+        if (result.success) {
+            alert("✅ Đã xác minh");
+            loadViolations();
+        }
+    }
+    
+    async function rejectViolation(id) {
+        if (!confirm("Từ chối hồ sơ?"))
+            return;
+        const res = await fetch(`http://127.0.0.1:5000/api/violations/${id}/status`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    status: "rejected"
+                })
+            }
+        );
+
+        const result = await res.json();
+
+        if (result.success) {
+            alert("❌ Đã từ chối");
+            loadViolations();
+        }
+    }
+
+    function openPreview() {
+        loadPreviewData();
+        document.getElementById("previewModal").style.display = "block";
+    }
+
+    function closePreview() {
+        document.getElementById("previewModal").style.display = "none";
+    }
+
+    async function getFilteredData() {
+        const res =
+            await fetch(
+                "http://127.0.0.1:5000/api/violations"
+            );
+        const data =
+            await res.json();
+        return data;
+    }
+
+    async function loadPreviewData() {
+
+        const filtered =
+            await getFilteredData();
+
+        const previewBody =
+            document.getElementById("previewBody");
 
         if (filtered.length === 0) {
-            html = `
-                <tr>
-                    <td colspan="6" style="padding:20px; color:gray;">
-                        Không tìm thấy kết quả phù hợp
-                    </td>
-                </tr>
-            `;
-        } else {
-            filtered.forEach((v, index) => {
 
-                const statusRaw = (v.status || "").toLowerCase();
-
-                let statusClass = "badge-pending";
-                let statusText = "Chờ xử lý";
-
-                if (statusRaw.includes("verified") || statusRaw.includes("xác minh")) {
-                    statusClass = "badge-success";
-                    statusText = "Đã xác minh";
-                } 
-
-                html += `
+            previewBody.innerHTML = `
                 <tr>
 
-                    <td><b>${v.id ?? index + 1}</b></td>
-
-                    <td>
-                        <span style="font-weight:600;">
-                            ${v.vehicle_type || "Không rõ"}
-                        </span>
-                    </td>
-
-                    <!-- CAMERA -->
-                    <td>
-                        <div style="font-weight:600;color:#2563eb">
-                            ${v.camera_name || "Không rõ"}
-                        </div>
-
-                        <small style="color:gray">
-                            ${v.camera_location || ""}
-                        </small>
-                    </td>
-
-                    <!-- BIỂN SỐ -->
-                    <td>
-                        <code style="
-                            background:#e2e8f0;
-                            padding:4px 8px;
-                            border-radius:4px;
-                        ">
-                            ${v.plate || "N/A"}
-                        </code>
-                    </td>
-
-                    <td>${v.type || "N/A"}</td>
-
-                    <td>${formatTime(v.time || v.created_at)}</td>
-
-                    <td>
-                        <span class="badge ${statusClass}">
-                            ${statusText}
-                        </span>
-                    </td>
-
-                    <td>
-                        <button
-                            class="btn-action"
-                            onclick="goDetail(${v.id})"
-                        >
-                            Chi tiết
-                        </button>
+                    <td colspan="7">
+                        Không có dữ liệu
                     </td>
 
                 </tr>
-                `;
-            });
+            `;
+
+            return;
         }
 
-        document.getElementById("violationBody").innerHTML = html;
+        previewBody.innerHTML =
+            filtered.map((v, index) => {
 
-    } catch (err) {
-        console.error("❌ API ERROR:", err);
-    }
-}
+                let statusText =
+                    "Chờ xử lý";
 
-function viewDetail(id) {
-    alert("Xem chi tiết vi phạm ID: " + id);
-}
-function goDetail(id) {
-    window.location.href = `violation-detail.html?id=${id}`;
-}
-//Xuất file
-function openPreview() {
-    loadPreviewData();
-    document.getElementById("previewModal").style.display = "block";
-}
+                if ((v.status || "") === "verified") {
+                    statusText = "Đã xác minh";
+                }
 
-function closePreview() {
-    document.getElementById("previewModal").style.display = "none";
-}
+                if ((v.status || "") === "rejected") {
+                    statusText = "Đã từ chối";
+                }
 
-async function getFilteredData() {
-    try {
-        const res = await fetch("http://127.0.0.1:5000/api/violations");
-        const data = await res.json();
+                return `
+                    <tr>
 
-        const plateSearch = document.getElementById("searchPlate").value.trim().toLowerCase();
-        const typeFilter = document.getElementById("filterType").value;
-        const statusFilter = document.getElementById("filterStatus").value;
+                        <td>${v.id ?? index + 1}</td>
 
-        return data.filter(v => {
-            const plate = (v.plate || "").toLowerCase();
-            const type = (v.type || "").toLowerCase();
-            const status = (v.status || "").toLowerCase();
+                        <td>${v.plate || "N/A"}</td>
 
-            const matchPlate = plate.includes(plateSearch);
-            const matchType = (typeFilter === "all") ||
-                (typeFilter === "red_light" && (type.includes("red") || type.includes("đèn đỏ"))) ||
-                (typeFilter === "no_helmet" && (type.includes("helmet") || type.includes("mũ")));
+                        <td>${v.vehicle_type || "Không rõ"}</td>
 
-            const matchStatus = (statusFilter === "all") ||
-                (statusFilter === "pending" && (status === "pending" || status.includes("chờ"))) ||
-                (statusFilter === "verified" && (status === "verified" || status.includes("xác minh")));
+                        <td>${v.type || "N/A"}</td>
 
-            return matchPlate && matchType && matchStatus;
-        });
-    } catch (err) {
-        console.error("Lỗi lấy dữ liệu:", err);
-        return [];
-    }
-}
+                        <td>${v.camera_name || "Không rõ"}</td>
 
-async function loadPreviewData() {
-    const filtered = await getFilteredData();
-    const previewBody = document.getElementById("previewBody");
-    
-    if (filtered.length === 0) {
-        previewBody.innerHTML = "<tr><td colspan='5'>Không có dữ liệu để xuất</td></tr>";
-        return;
+                        <td>
+                            ${formatExcelTime(v.time || v.created_at)}
+                        </td>
+
+                        <td>${statusText}</td>
+
+                    </tr>
+                `;
+
+            }).join("");
+
     }
 
-    previewBody.innerHTML = filtered.map((v, index) => `
-        <tr>
-            <td>${v.id ?? index + 1}</td>
+    async function exportExcel() {
 
-            <td>${v.plate || "N/A"}</td>
+        const filtered =
+            await getFilteredData();
 
-            <td>${v.type || "N/A"}</td>
+        if (filtered.length === 0) {
 
-            <td>${v.time || "---"}</td>
+            alert("Không có dữ liệu!");
 
-            <td>
-                ${v.camera_name || "Không rõ"}
-                <br>
-                <small>${v.camera_location || ""}</small>
-            </td>
+            return;
 
-            <td>
-                ${(v.status || "").includes("verified")
-                    ? "Đã xác minh"
-                    : "Chờ xử lý"}
-            </td>
-        </tr>
-    `).join('');
-}
+        }
 
-async function exportExcel() {
-    const filtered = await getFilteredData();
-    if (filtered.length === 0) return alert("Không có dữ liệu!");
+        const exportData =
+            filtered.map((v, index) => {
 
-    const exportData = filtered.map((v, index) => ({
-        "STT": index + 1,
-        "Mã Hồ Sơ": v.id || "N/A",
-        "Biển Số Xe": v.plate || "N/A",
-        "Loại Vi Phạm": v.type || "N/A",
-        "Thời Gian Ghi Nhận": v.time || "---",
-        "Trạng Thái Xử Lý": (v.status || "").includes("verified") ? "Đã xác minh" : "Chờ xử lý"
-    }));
+                let statusText =
+                    "Chờ xử lý";
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
+                if ((v.status || "") === "verified") {
+                    statusText = "Đã xác minh";
+                }
 
-    const columnWidths = [
-        { wch: 5 },  
-        { wch: 10 }, 
-        { wch: 15 },
-        { wch: 25 }, 
-        { wch: 20 },
-        { wch: 15 }  
-    ];
-    worksheet['!cols'] = columnWidths;
+                if ((v.status || "") === "rejected") {
+                    statusText = "Đã từ chối";
+                }
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sach vi pham");
-    
-    const fileName = `Bao_cao_vi_pham_${new Date().getTime()}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
-    
-    closePreview();
-}
+                return {
+
+                    "STT":
+                        index + 1,
+
+                    "Mã Hồ Sơ":
+                        v.id || "N/A",
+
+                    "Biển Số":
+                        v.plate || "N/A",
+
+                    "Loại Xe":
+                        v.vehicle_type || "Không rõ",
+
+                    "Loại Vi Phạm":
+                        v.type || "N/A",
+
+                    "Camera":
+                        v.camera_name || "Không rõ",
+
+                    "Vị Trí Camera":
+                        v.camera_location || "Không rõ",
+
+                    "Thời Gian":
+                        formatExcelTime(
+                            v.time || v.created_at
+                        ),
+
+                    "Trạng Thái":
+                        statusText
+                };
+
+            });
+
+        const worksheet =
+            XLSX.utils.json_to_sheet(exportData);
+
+        worksheet["!cols"] = [
+
+            { wch: 8 },
+            { wch: 12 },
+            { wch: 18 },
+            { wch: 18 },
+            { wch: 28 },
+            { wch: 22 },
+            { wch: 28 },
+            { wch: 24 },
+            { wch: 18 }
+
+        ];
+
+        const workbook =
+            XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            "Bao Cao Vi Pham"
+        );
+
+        const now =
+            new Date();
+
+        const fileName =
+            `Bao_Cao_Vi_Pham_${now.getFullYear()}_${now.getMonth() + 1}_${now.getDate()}.xlsx`;
+
+        XLSX.writeFile(
+            workbook,
+            fileName
+        );
+
+        closePreview();
+
+        alert("✅ Xuất báo cáo thành công!");
+
+    }
+
+    function formatExcelTime(gmtTime) {
+
+        if (!gmtTime)
+            return "---";
+
+        const date =
+            new Date(gmtTime);
+
+        const day =
+            String(date.getUTCDate())
+            .padStart(2, "0");
+
+        const month =
+            String(date.getUTCMonth() + 1)
+            .padStart(2, "0");
+
+        const year =
+            date.getUTCFullYear();
+
+        const hours =
+            String(date.getUTCHours())
+            .padStart(2, "0");
+
+        const minutes =
+            String(date.getUTCMinutes())
+            .padStart(2, "0");
+
+        const seconds =
+            String(date.getUTCSeconds())
+            .padStart(2, "0");
+
+        return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+
+    }
+
 </script>
 
 </body>

@@ -45,21 +45,53 @@ def get_image(filename):
 
 @app.route('/api/violations/<int:id>', methods=['GET'])
 def get_violation(id):
-    conn = mysql.connector.connect(
-        **db_config
-    )
-    cursor = conn.cursor(
-        dictionary=True
-    )
-    cursor.execute(
-        "SELECT * FROM violations WHERE id = %s",(id,)
-    )
-    row = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+    try:
 
-    return jsonify(row)
+        conn = mysql.connector.connect(
+            **db_config
+        )
+
+        cursor = conn.cursor(
+            dictionary=True
+        )
+
+        query = """
+        SELECT
+
+            violations.*,
+
+            videos.name AS camera_name,
+            videos.location AS camera_location,
+
+            vehicles.vehicle_type AS vehicle_type
+
+        FROM violations
+
+        LEFT JOIN videos
+        ON violations.video_id = videos.id
+
+        LEFT JOIN vehicles
+        ON violations.vehicle_id = vehicles.id
+
+        WHERE violations.id = %s
+        """
+
+        cursor.execute(query, (id,))
+
+        row = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(row)
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.route('/videos/<path:filename>')
 def serve_video(filename):
