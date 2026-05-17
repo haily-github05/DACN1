@@ -97,7 +97,7 @@ def check_lane_violation(
         if inside_zone(point, sidewalk_zone):
 
             violations.append(
-                "SIDEWALK VIOLATION"
+                "Đi lên vỉa hè"
             )
 
     # xe máy đi làn ô tô
@@ -106,7 +106,7 @@ def check_lane_violation(
         if inside_zone(point, car_lane):
 
             violations.append(
-                "WRONG CAR LANE"
+                "Đi sai làn ô tô"
             )
 
     # ô tô đi làn xe máy
@@ -119,7 +119,7 @@ def check_lane_violation(
         if inside_zone(point, motor_lane):
 
             violations.append(
-                "WRONG MOTOR LANE"
+                "Đi sai làn xe máy"
             )
 
     return violations

@@ -4,7 +4,7 @@ from ultralytics import YOLO
 
 class LicensePlateDetector:
     # model_path ở đây PHẢI trỏ đến file .pt (ví dụ: yolov8n.pt)
-    def __init__(self, model_path="yolov8n.pt"): 
+    def __init__(self, model_path="yolo11s.pt"): 
         # 1. Khởi tạo model YOLO (Nạp file nặng, chứa dữ liệu AI)
         self.plate_model = YOLO(model_path)
         

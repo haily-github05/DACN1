@@ -12,8 +12,7 @@ api_process = subprocess.Popen(
 time.sleep(2)
 
 print("System is running!")
-print("API: http://127.0.0.1:5000")
-print("WEB: http://127.0.0.1:5500/traffic_web/index.html")
+print("http://127.0.0.1:5000")
 
 try:
 

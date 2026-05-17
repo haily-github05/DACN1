@@ -21,7 +21,7 @@ camera_bp = Blueprint(
 # LOAD MODEL
 # =========================
 
-vehicle_model = YOLO("yolov8n.pt")
+model = YOLO("yolo11s.pt")
 
 reader = easyocr.Reader(
     ['en'],

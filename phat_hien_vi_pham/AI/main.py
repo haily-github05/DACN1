@@ -13,10 +13,10 @@ from api.models.traffic_logs import TrafficLogModel
 # ==========================
 # INIT
 # ==========================
-model = YOLO("yolov8n.pt")
+model = YOLO("yolo11s.pt")
 tracker = DeepSort(max_age=30)
 
-lp_detector = LicensePlateDetector("yolov8n.pt")
+lp_detector = LicensePlateDetector("yolo11s.pt")
 
 DB_CONFIG = {
     "host": "127.0.0.1",

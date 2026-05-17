@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 # Load model YOLO
-model = YOLO("yolov8n.pt")
+model = YOLO("yolo11s.pt")
 
 # Đường dẫn video (đổi tên file của bạn)
 # video_path = "videos\test1.mp4"

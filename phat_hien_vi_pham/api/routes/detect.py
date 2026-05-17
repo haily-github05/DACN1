@@ -6,7 +6,7 @@ import easyocr
 
 detect_bp = Blueprint("detect", __name__)
 
-model = YOLO("yolov8n.pt")   # hoặc model biển số của bạn
+model = YOLO("yolo11s.pt")   # hoặc model biển số của bạn
 reader = easyocr.Reader(['en'])
 
 @detect_bp.route("/detect", methods=["POST"])

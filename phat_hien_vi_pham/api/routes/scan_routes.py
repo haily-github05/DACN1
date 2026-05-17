@@ -1,20 +1,15 @@
 from flask import Blueprint, request, jsonify
-
 import os
 import time
-import base64
 import cv2
 import numpy as np
 import mysql.connector
 
 from api.services.detector_service import detect_vehicles
 from api.services.ocr_service import detect_plate
+from api.services.traffic_light_service import detect_traffic_light
 
-from api.routes.lane_routes import (
-    draw_zones,
-    check_lane_violation
-)
-
+from api.routes.lane_routes import draw_zones, check_lane_violation
 from api.routes.red_light_routes import (
     draw_stop_line,
     check_red_light_violation
@@ -22,9 +17,7 @@ from api.routes.red_light_routes import (
 
 scan_bp = Blueprint("scan", __name__)
 
-# =========================
-# DATABASE
-# =========================
+plate_cache = {}
 
 db_config = {
     "host": "127.0.0.1",
@@ -34,16 +27,12 @@ db_config = {
     "database": "traffic_db"
 }
 
-# =========================
-# MAP
-# =========================
-
 vehicle_map = {
     "motorcycle": 1,
-    "car": 2,         
-    "bus": 3,        
-    "truck": 4,    
-    "person": 5      
+    "car": 2,
+    "bus": 3,
+    "truck": 4,
+    "person": 5
 }
 
 vehicle_name_vi = {
@@ -51,12 +40,8 @@ vehicle_name_vi = {
     "car": "Ô tô",
     "bus": "Xe buýt",
     "truck": "Xe tải",
-    "person": "Ngừơi đi bộ"
+    "person": "Người đi bộ"
 }
-
-# =========================
-# API SCAN
-# =========================
 
 @scan_bp.route("/api/scan", methods=["POST"])
 def scan():
@@ -66,209 +51,176 @@ def scan():
 
     try:
 
-        data = request.json or {}
+        file = request.files.get("image")
+        video_id = request.form.get("video_id", 1)
 
-        video_id = data.get("video_id")
-        if not video_id:
-            return jsonify({
-                "success": False,
-                "error": "Missing video_id"
-            })
-            
-        if "image" not in data:
-            return jsonify({
-                "success": False,
-                "error": "No image"
-            })
+        if not file:
+            return jsonify({"success": False, "error": "No image"}), 400
 
-        # =========================
-        # BASE64 -> FRAME
-        # =========================
+        np_arr = np.frombuffer(file.read(), np.uint8)
+        frame_raw = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        image_data = data["image"].split(",")[1]
+        if frame_raw is None:
+            return jsonify({"success": False, "error": "Decode failed"}), 400
 
-        image_bytes = base64.b64decode(image_data)
+        # ================= TRAFFIC LIGHT =================
+        traffic_light = detect_traffic_light(frame_raw) or {"red": False, "box": None}
 
-        np_arr = np.frombuffer(image_bytes, np.uint8)
+        red_light = traffic_light["red"]
+        light_box = traffic_light["box"]
 
-        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        # ================= VEHICLES =================
+        detected = detect_vehicles(frame_raw) or []
 
-        if frame is None:
-            return jsonify({
-                "success": False,
-                "error": "Frame decode failed"
-            })
+        # ================= DRAW =================
+        frame_visual = frame_raw.copy()
 
-        # =========================
-        # DRAW ZONES
-        # =========================
+        draw_zones(frame_visual)
+        draw_stop_line(frame_visual, red_light)
 
-        draw_zones(frame)
-        draw_stop_line(frame)
+        # vẽ đèn
+        if light_box:
+            lx = light_box["x"]
+            ly = light_box["y"]
+            lw = light_box["w"]
+            lh = light_box["h"]
 
-        # =========================
-        # DETECT VEHICLES
-        # =========================
+            color = (0, 0, 255) if red_light else (0, 255, 0)
 
-        try:
-            detected = detect_vehicles(frame)
-            print("DETECTED:", len(detected))
-        except Exception as e:
-            print("DETECT ERROR:", e)
-            detected = []
+            cv2.rectangle(
+                frame_visual,
+                (lx, ly),
+                (lx + lw, ly + lh),
+                color,
+                2
+            )
+
+        # ================= DB =================
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        conn.autocommit = True
 
         vehicles = []
 
-        # =========================
-        # DB CONNECT
-        # =========================
-
-        conn = mysql.connector.connect(**db_config)
-        conn.autocommit = True
-        cursor = conn.cursor()
-
-        # =========================
-        # LOOP
-        # =========================
-
         for item in detected:
 
-            try:
+            track_id = item.get("track_id", -1)
 
-                # ================= OCR =================
-                plate = detect_plate(item["plate_crop"])
+            # OCR cache
+            if track_id in plate_cache:
+                plate = plate_cache[track_id]
+            else:
+                plate_crop = item.get("plate_crop")
 
-                # ================= BOX =================
-                box = item["vehicle_box"]
+                if plate_crop is not None:
+                    plate = detect_plate(plate_crop)
+                else:
+                    plate = "UNKNOWN"
 
-                x, y, w, h = box["x"], box["y"], box["w"], box["h"]
+                plate_cache[track_id] = plate
 
-                center_x = x + w // 2
-                center_y = y + h // 2
+                if len(plate_cache) > 300:
+                    plate_cache.pop(next(iter(plate_cache)))
 
-                # ================= TYPE =================
-                vehicle_type_en = item["vehicle_type"]
-                vehicle_type_vi = vehicle_name_vi.get(vehicle_type_en, vehicle_type_en)
+            # box
+            box = item["vehicle_box"]
+            x, y, w, h = box["x"], box["y"], box["w"], box["h"]
 
-                # ================= VIOLATION CHECK =================
-                red_light_violation = check_red_light_violation(center_y, red_light=True)
+            center_y = y + h // 2
 
-                violations = check_lane_violation(
-                    center_x,
+            vehicle_type_en = item["vehicle_type"]
+            vehicle_type_vi = vehicle_name_vi.get(vehicle_type_en, vehicle_type_en)
+
+            # ================= VIOLATIONS =================
+            violations = []
+
+            violations.extend(
+                check_lane_violation(
+                    x + w // 2,
                     center_y,
-                    vehicle_type_en,   # ❗ PHẢI EN
-                    red_light=True
+                    vehicle_type_en
+                )
+            )
+
+            if check_red_light_violation(track_id, center_y, red_light):
+                violations.append("Vượt đèn đỏ")
+
+            violation_type = violations[0] if violations else None
+
+            image_name = ""
+
+            # ================= SAVE =================
+            if violation_type:
+
+                os.makedirs("evidences", exist_ok=True)
+
+                image_name = f"{int(time.time()*1000)}_{plate}.jpg"
+
+                path = os.path.join("evidences", image_name)
+
+                evidence = frame_visual.copy()
+
+                cv2.rectangle(
+                    evidence,
+                    (x, y),
+                    (x + w, y + h),
+                    (0, 0, 255),
+                    2
                 )
 
-                if red_light_violation:
-                    violations.append("Vượt đèn đỏ")
+                cv2.putText(
+                    evidence,
+                    violation_type,
+                    (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 0, 255),
+                    2
+                )
 
-                violation_type = violations[0] if violations else None
+                cv2.imwrite(path, evidence)
 
-                image_name = ""
+                vehicle_id = vehicle_map.get(vehicle_type_en)
 
-                # ================= SAVE =================
-                if violation_type:
+                if vehicle_id:
 
-                    save_dir = "evidences"
-                    os.makedirs(save_dir, exist_ok=True)
-
-                    image_name = f"{int(time.time()*1000)}.jpg"
-                    filepath = os.path.join(save_dir, image_name)
-
-                    frame_copy = frame.copy()
-
-                    # BOX
-                    cv2.rectangle(frame_copy, (x, y), (x + w, y + h), (0, 255, 0), 3)
-
-                    # TEXT
-                    cv2.putText(
-                        frame_copy,
-                        violation_type,
-                        (x, y - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.8,
-                        (0, 0, 255),
-                        2
-                    )
-
-                    # PLATE BOX
-                    if "plate_box" in item:
-                        p = item["plate_box"]
-
-                        cv2.rectangle(
-                            frame_copy,
-                            (p["x"], p["y"]),
-                            (p["x"] + p["w"], p["y"] + p["h"]),
-                            (0, 0, 255),
-                            3
-                        )
-
-                        cv2.putText(
-                            frame_copy,
-                            plate,
-                            (p["x"], p["y"] - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.9,
-                            (0, 255, 255),
-                            2
-                        )
-
-                    cv2.imwrite(filepath, frame_copy)
-
-                    # ================= VEHICLE ID =================
-                    vehicle_id = vehicle_map.get(vehicle_type_en)
-
-                    if vehicle_id is None:
-                        continue  # ❗ tránh FK lỗi
-
-                    # ================= INSERT DB =================
-                    cursor.execute(
-                        """
+                    cursor.execute("""
                         INSERT INTO violations
                         (vehicle_id, type, time, video_id, plate, image, status)
                         VALUES (%s, %s, NOW(), %s, %s, %s, %s)
-                        """,
-                        (
-                            vehicle_id,
-                            violation_type,
-                            video_id,
-                            plate,
-                            image_name,
-                            "pending"
-                        )
-                    )
+                    """, (
+                        vehicle_id,
+                        violation_type,
+                        video_id,
+                        plate,
+                        image_name,
+                        "pending"
+                    ))
 
-                # ================= RETURN =================
-                vehicles.append({
-                    "plate": plate,
-                    "vehicle_type": vehicle_type_vi,
-                    "violation": violation_type,
-                    "image": image_name,
-                    "box": item["vehicle_box"],
-                    "plate_box": item.get("plate_box")
-                })
+            vehicles.append({
+                "track_id": track_id,
+                "plate": plate,
+                "vehicle_type": vehicle_type_vi,
+                "violation": violation_type,
+                "image": image_name,
+                "box": box,
+                "camera_name": "Camera Trục Chính",
+                "status": "pending"
+            })
 
-            except Exception as e:
-                print("ITEM ERROR:", e)
-
+        # Tìm dòng này ở gần cuối hàm scan() trong file của bạn và cập nhật:
         return jsonify({
             "success": True,
-            "vehicles": vehicles
+            "vehicles": vehicles,
+            "red_light": red_light,              # <<< THÊM DÒNG NÀY để truyền trạng thái đèn về FE
+            "stop_line": {"y": 490}              # <<< THÊM DÒNG NÀY để đồng bộ vạch vẽ trên FE
         })
 
     except Exception as e:
-        print("SCAN ERROR:", e)
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        })
+        return jsonify({"success": False, "error": str(e)}), 500
 
     finally:
-        try:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-        except:
-            pass
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
