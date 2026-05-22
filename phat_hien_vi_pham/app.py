@@ -248,12 +248,6 @@ def static_files(path):
 # =========================
 
 if __name__ == "__main__":
-
-    print("===================================")
-    print(" TRAFFIC AI SERVER RUNNING ")
-    print(" http://127.0.0.1:5000 ")
-    print("===================================")
-
     app.run(
         host="0.0.0.0",
         port=5000,

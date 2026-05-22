@@ -4,7 +4,9 @@ import numpy as np
 
 vehicle_model = YOLO("AI_models/yolo11s.pt")
 plate_model = YOLO("AI_models/license_plate_detector.pt")
-
+vn_plate_model = YOLO(
+    "AI_models/vietnam-license-plate.pt"
+)
 vehicle_names = {2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
 
 # Giữ cache toàn cục ổn định

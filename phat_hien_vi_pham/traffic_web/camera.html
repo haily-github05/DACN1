@@ -46,24 +46,24 @@
             width: calc(100% - 260px);
         }
 
-        /* VIDEO MONITOR SECTION - CHỈNH SỬA CHÍNH Ở ĐÂY */
+        /* VIDEO MONITOR SECTION */
         .video-monitor-wrapper {
             background: white;
             padding: 20px;
             border-radius: 16px;
             box-shadow: var(--card-shadow);
             margin-bottom: 30px;
-            display: flex; /* Đưa các phần tử bên trong nằm ngang */
+            display: flex;
             gap: 25px;
             align-items: flex-start;
         }
 
         .video-left-column {
-            flex: 0 0 750px; /* Cố định độ rộng khung video (nhỏ lại) */
+            flex: 0 0 750px;
         }
 
         .video-right-column {
-            flex: 1; /* Phần điều khiển chiếm không gian còn lại */
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -89,22 +89,6 @@
             border: 1px solid #ddd;
         }
 
-        #btnScan {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.3s;
-            font-size: 0.8rem;
-            width: fit-content;
-            align-self: flex-start;
-        }
-
-        #btnScan:hover { background: #1d4ed8; transform: scale(1.05);}
-
         .ai-status-box {
             background: #f1f5f9;
             padding: 15px;
@@ -128,20 +112,63 @@
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
         .badge-red { background: #fee2e2; color: #dc2626; }
         .badge-green { background: #dcfce7; color: #16a34a; }
+        
         #btnStartScan {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.8rem;
-}
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
 
-#btnStartScan:hover {
-    background: #1d4ed8;
-}
+        #btnStartScan:hover { background: #1d4ed8; }
+
+        .mode-btn {
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #e2e8f0;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .mode-btn:hover { transform: scale(1.03); }
+        .active-mode { background: #2563eb; color: white; }
+
+        /* IMAGE CANVAS OVERLAY LAYOUT */
+        .image-scan-layout {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .image-preview-container {
+            position: relative;
+            width: 100%;
+            max-width: 750px; /* Khớp kích thước ngang tương tự như bên Video */
+            margin-top: 15px;
+            display: none; /* Ẩn đi mặc định, chỉ hiện khi đã chọn ảnh */
+        }
+
+        #previewImage {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        #imageCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 
@@ -157,7 +184,15 @@
 
 <div class="main">
     <h1>📹 Hệ thống Giám sát</h1>
-    <div class="video-monitor-wrapper">
+    
+    <!-- CHUYỂN TÁP CHẾ ĐỘ -->
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <button id="tabVideo" class="mode-btn active-mode">📹 Quét Video</button>
+        <button id="tabImage" class="mode-btn">🖼 Quét Hình Ảnh</button>
+    </div>
+
+    <!-- KHU VỰC QUÉT VIDEO -->
+    <div id="videoSection" class="video-monitor-wrapper">
         <div class="video-left-column">
             <div class="media-wrapper">
                 <video id="videoPlayer" autoplay muted playsinline></video>
@@ -171,29 +206,41 @@
             
             <div style="display:flex; gap:10px;">
                 <button id="btnStartScan">▶ BẮT ĐẦU QUÉT</button>
-                <button id="btnStopScan"
-                    style="
-                        background:#dc2626;
-                        color:white;
-                        border:none;
-                        padding:10px;
-                        border-radius:10px;
-                        cursor:pointer;
-                        font-weight:600;
-                        font-size:0.8rem;
-                    ">⏹ DỪNG
-                </button>
+                <button id="btnStopScan" style="background:#dc2626; color:white; border:none; padding:10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:0.8rem;">⏹ DỪNG</button>
             </div>
+            
             <div class="ai-status-box">
                 <small style="color: #64748b;">Trạng thái AI:</small>
-                <div id="scanResult" style="margin-top: 5px; font-weight: bold;">Đang chờ dữ liệu...</div>
+                <div id="videoScanResult" style="margin-top: 5px; font-weight: bold;">Đang chờ dữ liệu...</div>
             </div>
             
             <canvas id="captureCanvas" style="display:none;"></canvas>
         </div>
-        
     </div>
 
+    <!-- KHU VỰC QUÉT HÌNH ẢNH (ĐÃ ĐƯỢC FIX LỖI TỌA ĐỘ CANVAS) -->
+    <div id="imageSection" class="video-monitor-wrapper" style="display:none;">
+        <div class="image-scan-layout">
+            <h2>🖼 Quét bằng hình ảnh</h2>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="imageInput" accept="image/*" style="padding:10px; border:1px solid #ddd; border-radius:10px; background:white;">
+                <button id="btnScanImage" style="background:#16a34a; color:white; border:none; padding:12px 24px; border-radius:10px; cursor:pointer; font-weight:600;">🧠 QUÉT ẢNH</button>
+                <div class="ai-status-box">
+                <small style="color: #64748b;">Trạng thái AI:</small>
+                <div id="imageScanResult" style="margin-top: 5px; font-weight: bold;">Đang chờ dữ liệu...</div>
+            </div>
+            </div>
+
+            <!-- Khung chứa ảnh gốc làm nền và Canvas bọc ngoài làm lớp vẽ khung đè lên -->
+            <div id="imageContainer" class="image-preview-container">
+                <img id="previewImage" alt="Preview">
+                <canvas id="imageCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG KẾT QUẢ VI PHẠM -->
     <div class="table-section">
         <h2>🚫 Vi phạm phát hiện mới nhất</h2>
         <table>
@@ -202,7 +249,6 @@
                     <th>ID</th>
                     <th>Loại vi phạm</th>
                     <th>Thời gian</th>
-                    <!-- <th>Camera</th> -->
                     <th>Biển số</th>
                     <th>Bằng chứng</th>
                 </tr>
@@ -212,10 +258,8 @@
                     <td><b>#102</b></td>
                     <td><span class="badge badge-red">Vượt đèn đỏ</span></td>
                     <td>14:20:05</td>
-                    <td>Camera 01</td>
                     <td><code style="background:#eee; padding:3px 6px;">29A-123.45</code></td>
                     <td><img src="https://placehold.jp/80x50.png" class="violation-img"></td>
-                    <td><span class="badge badge-green">Đã xác minh</span></td>
                 </tr>
             </tbody>
         </table>

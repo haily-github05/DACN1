@@ -21,7 +21,7 @@ camera_bp = Blueprint(
 # LOAD MODEL
 # =========================
 
-model = YOLO("yolo11s.pt")
+model = YOLO("AI_models/yolo11s.pt")
 
 reader = easyocr.Reader(
     ['en'],
@@ -89,7 +89,7 @@ def scan_vehicle():
                     # OCR
                     text = reader.readtext(crop)
 
-                    plate = "UNKNOWN"
+                    plate = "Unknown"
 
                     if len(text) > 0:
 

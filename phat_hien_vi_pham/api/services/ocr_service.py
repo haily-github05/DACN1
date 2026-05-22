@@ -3,11 +3,6 @@ import cv2
 import re
 import numpy as np
 
-# =========================
-# EASY OCR
-# =========================
-
-print("⚙️ EasyOCR chạy bằng CPU")
 
 reader = easyocr.Reader(
     ['en'],
@@ -73,10 +68,10 @@ def detect_plate(plate_crop):
     try:
 
         if plate_crop is None:
-            return "UNKNOWN"
+            return "Unknown"
 
         if plate_crop.size == 0:
-            return "UNKNOWN"
+            return "Unknown"
 
         h_orig, w_orig = plate_crop.shape[:2]
 
@@ -142,7 +137,7 @@ def detect_plate(plate_crop):
         )
 
         if not results:
-            return "UNKNOWN"
+            return "Unknown"
 
         results.sort(
             key=lambda x: x[0][0][0]
@@ -163,10 +158,10 @@ def detect_plate(plate_crop):
         if len(full_text) >= 5:
             return full_text
 
-        return "UNKNOWN"
+        return "Unknown"
 
     except Exception as e:
 
         print(f"OCR ERROR: {e}")
 
-        return "UNKNOWN"
+        return "Unknown"

@@ -11,7 +11,7 @@ def is_crossing_line(point, line_y):
     """Kiểm tra tâm xe đã vượt qua vạch ngang line_y chưa"""
     return point[1] > line_y
 
-def save_violation(frame, track_id, vehicle_type, plate_text="UNKNOWN"):
+def save_violation(frame, track_id, vehicle_type, plate_text="Unknown"):
     """Lưu ảnh vi phạm và ghi log vào CSV"""
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     img_name = f"violation_{track_id}_{time_str}.jpg"
