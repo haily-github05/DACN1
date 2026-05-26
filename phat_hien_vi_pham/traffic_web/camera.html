@@ -184,14 +184,12 @@
 
 <div class="main">
     <h1>📹 Hệ thống Giám sát</h1>
-    
-    <!-- CHUYỂN TÁP CHẾ ĐỘ -->
+
     <div style="display:flex; gap:10px; margin-bottom:20px;">
         <button id="tabVideo" class="mode-btn active-mode">📹 Quét Video</button>
         <button id="tabImage" class="mode-btn">🖼 Quét Hình Ảnh</button>
     </div>
 
-    <!-- KHU VỰC QUÉT VIDEO -->
     <div id="videoSection" class="video-monitor-wrapper">
         <div class="video-left-column">
             <div class="media-wrapper">
@@ -205,8 +203,8 @@
             <select id="videoSelect"></select>
             
             <div style="display:flex; gap:10px;">
-                <button id="btnStartScan">▶ BẮT ĐẦU QUÉT</button>
-                <button id="btnStopScan" style="background:#dc2626; color:white; border:none; padding:10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:0.8rem;">⏹ DỪNG</button>
+                <button id="btnStartScan">BẮT ĐẦU QUÉT</button>
+                <button id="btnStopScan" style="background:#dc2626; color:white; border:none; padding:10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:0.8rem;">DỪNG</button>
             </div>
             
             <div class="ai-status-box">
@@ -218,21 +216,17 @@
         </div>
     </div>
 
-    <!-- KHU VỰC QUÉT HÌNH ẢNH (ĐÃ ĐƯỢC FIX LỖI TỌA ĐỘ CANVAS) -->
     <div id="imageSection" class="video-monitor-wrapper" style="display:none;">
         <div class="image-scan-layout">
-            <h2>🖼 Quét bằng hình ảnh</h2>
-
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="file" id="imageInput" accept="image/*" style="padding:10px; border:1px solid #ddd; border-radius:10px; background:white;">
-                <button id="btnScanImage" style="background:#16a34a; color:white; border:none; padding:12px 24px; border-radius:10px; cursor:pointer; font-weight:600;">🧠 QUÉT ẢNH</button>
+                <button id="btnScanImage" style="background:#16a34a; color:white; border:none; padding:12px 24px; border-radius:10px; cursor:pointer; font-weight:600;">QUÉT ẢNH</button>
                 <div class="ai-status-box">
                 <small style="color: #64748b;">Trạng thái AI:</small>
                 <div id="imageScanResult" style="margin-top: 5px; font-weight: bold;">Đang chờ dữ liệu...</div>
             </div>
             </div>
 
-            <!-- Khung chứa ảnh gốc làm nền và Canvas bọc ngoài làm lớp vẽ khung đè lên -->
             <div id="imageContainer" class="image-preview-container">
                 <img id="previewImage" alt="Preview">
                 <canvas id="imageCanvas"></canvas>
@@ -240,7 +234,6 @@
         </div>
     </div>
 
-    <!-- BẢNG KẾT QUẢ VI PHẠM -->
     <div class="table-section">
         <h2>🚫 Vi phạm phát hiện mới nhất</h2>
         <table>

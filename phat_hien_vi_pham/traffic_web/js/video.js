@@ -19,7 +19,6 @@ window.addEventListener("load", async () => {
 
             const option = document.createElement("option");
 
-            // ⭐ QUAN TRỌNG NHẤT: phải là ID
             option.value = video.id;
 
             option.textContent = video.name;
