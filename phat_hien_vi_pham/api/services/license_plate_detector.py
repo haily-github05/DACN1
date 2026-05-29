@@ -45,7 +45,12 @@ tracked_plates = {}
 # DETECT VEHICLES
 # =========================
 
-def detect_vehicles(frame):
+def detect_vehicles(
+    frame,
+    imgsz=416,
+    conf=0.5,
+    verbose=False
+):
 
     vehicles = []
 

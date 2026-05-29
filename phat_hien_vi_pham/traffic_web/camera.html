@@ -169,6 +169,38 @@
             width: 100%;
             height: 100%;
         }
+        /* Styling cho nút Play/Pause */
+#btnPlayPause {
+    background: #4b8fef; /* Màu xám xanh hiện đại */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%; /* Căn theo chiều rộng của cột phải */
+}
+
+#btnPlayPause:hover {
+    background: #65a1f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#btnPlayPause:active {
+    transform: translateY(0);
+}
+
+/* Hiệu ứng khi video đang chạy hoặc dừng */
+.video-playing {
+    background: #ea580c !important; /* Màu cam nếu muốn nhấn mạnh đang chạy */
+}
     </style>
 </head>
 
@@ -201,7 +233,9 @@
         <div class="video-right-column">
             <label for="videoSelect" style="font-weight:600;">Chọn nguồn Camera:</label>
             <select id="videoSelect"></select>
-            
+            <div class="controls">
+                <button id="btnPlayPause">PHÁT/TẠM DỪNG VIDEO</button>
+            </div>
             <div style="display:flex; gap:10px;">
                 <button id="btnStartScan">BẮT ĐẦU QUÉT</button>
                 <button id="btnStopScan" style="background:#dc2626; color:white; border:none; padding:10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:0.8rem;">DỪNG</button>

@@ -1,64 +1,179 @@
-import cv2
-import numpy as np
+from ultralytics import YOLO
+import time
+import json
+import os
 
-def detect_traffic_light(frame):
+# =========================
+# CONFIG
+# =========================
+config_path = os.path.join(
+    os.path.dirname(__file__),
+    "../config/camera_config.json"
+)
+
+traffic_model = YOLO("AI_models/traffic-light.pt")
+
+current_light = "unknown"
+
+last_detect_time = 0
+
+HOLD_SECONDS = 2
+
+
+# =========================
+# LOAD CAMERA CONFIG
+# =========================
+def get_roi_config(video_id):
+
+    default_config = {
+        "stop_line_ratio": 0.5,
+        "roi_traffic_light": {
+            "y1": 0.0,
+            "y2": 0.3,
+            "x1": 0.25,
+            "x2": 0.75
+        }
+    }
+
+    try:
+
+        with open(config_path, "r", encoding="utf-8") as f:
+
+            configs = json.load(f)
+
+            return configs.get(
+                str(video_id),
+                default_config
+            )
+
+    except Exception as e:
+
+        print("CONFIG ERROR =", e)
+
+        return default_config
+
+
+# =========================
+# DETECT TRAFFIC LIGHT
+# =========================
+def detect_traffic_light(frame, video_id=1):
+
+    global current_light
+    global last_detect_time
 
     h, w = frame.shape[:2]
 
-    roi = frame[0:int(h * 0.4), 0:w]
-    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    cfg = get_roi_config(video_id)
 
-    lower_red1 = np.array([0, 120, 120])
-    upper_red1 = np.array([10, 255, 255])
-
-    lower_red2 = np.array([160, 120, 120])
-    upper_red2 = np.array([180, 255, 255])
-
-    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
-    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
-
-    red_mask = mask1 + mask2
-
-    kernel = np.ones((5,5), np.uint8)
-    red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_OPEN, kernel)
-
-    contours, _ = cv2.findContours(
-        red_mask,
-        cv2.RETR_EXTERNAL,
-        cv2.CHAIN_APPROX_SIMPLE
+    roi_cfg = cfg.get(
+        "roi_traffic_light",
+        {}
     )
 
-    best_box = None
-    max_area = 0
+    # =========================
+    # ROI
+    # =========================
+    roi_y1 = int(
+        roi_cfg.get("y1", 0.0) * h
+    )
 
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
+    roi_y2 = int(
+        roi_cfg.get("y2", 0.3) * h
+    )
 
-        if area < 80:
-            continue
+    roi_x1 = int(
+        roi_cfg.get("x1", 0.25) * w
+    )
 
-        x, y, w_box, h_box = cv2.boundingRect(cnt)
+    roi_x2 = int(
+        roi_cfg.get("x2", 0.75) * w
+    )
 
-        if h_box / float(w_box) < 0.8:
-            continue
+    roi = frame[
+        roi_y1:roi_y2,
+        roi_x1:roi_x2
+    ]
 
-        if area > max_area:
-            max_area = area
-            best_box = (x, y, w_box, h_box)
+    # ROI lỗi
+    if roi.size == 0:
 
-    if best_box:
-        x, y, w_box, h_box = best_box
         return {
-            "red": True,
-            "box": {
-                "x": x,
-                "y": y,
-                "w": w_box,
-                "h": h_box
-            }
+            "red": False,
+            "light": "unknown",
+            "box": None
         }
 
+    # =========================
+    # YOLO
+    # =========================
+    results = traffic_model(
+        roi,
+        imgsz=320,
+        conf=0.4,
+        verbose=False
+    )
+
+    detected_color = None
+
+    best_conf = 0
+
+    best_box = None
+
+    for result in results:
+
+        for box in result.boxes:
+
+            cls_id = int(box.cls[0])
+
+            conf = float(box.conf[0])
+
+            class_name = traffic_model.names[
+                cls_id
+            ].lower()
+
+            if conf > best_conf:
+
+                best_conf = conf
+
+                if "red" in class_name:
+                    detected_color = "red"
+
+                elif "yellow" in class_name:
+                    detected_color = "yellow"
+
+                elif "green" in class_name:
+                    detected_color = "green"
+
+                x1, y1, x2, y2 = map(
+                    int,
+                    box.xyxy[0]
+                )
+
+                best_box = {
+                    "x": x1 + roi_x1,
+                    "y": y1 + roi_y1,
+                    "w": x2 - x1,
+                    "h": y2 - y1
+                }
+
+    # =========================
+    # HOLD LAST STATE
+    # =========================
+    if detected_color:
+
+        current_light = detected_color
+
+        last_detect_time = time.time()
+
+    elif (
+        time.time() - last_detect_time
+        > HOLD_SECONDS
+    ):
+
+        current_light = "unknown"
+
     return {
-        "red": False,
-        "box": None
+        "red": current_light == "red",
+        "light": current_light,
+        "box": best_box
     }

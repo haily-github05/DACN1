@@ -1,0 +1,8 @@
+
+{
+  "1": {
+    "name": "Camera Võ Chí Công",
+    "stop_line_ratio": 0.5,
+    "roi_traffic_light": {"y1": 0.0, "y2": 0.4, "x1": 0.15, "x2": 0.85}
+  }
+}
