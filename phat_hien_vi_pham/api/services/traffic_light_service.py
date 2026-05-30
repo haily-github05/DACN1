@@ -6,10 +6,9 @@ import os
 # =========================
 # CONFIG
 # =========================
-config_path = os.path.join(
-    os.path.dirname(__file__),
-    "../config/camera_config.json"
-)
+
+# Thay dòng config_path hiện tại bằng dòng này:
+config_path = "/Users/hohaily/Documents/github/DACN1/phat_hien_vi_pham/config/camera_config.json"
 
 traffic_model = YOLO("AI_models/traffic-light.pt")
 
@@ -45,6 +44,7 @@ def get_roi_config(video_id):
                 str(video_id),
                 default_config
             )
+            print(f"DEBUG: Đang load config cho camera {video_id} -> {cfg}")
 
     except Exception as e:
 
@@ -64,6 +64,9 @@ def detect_traffic_light(frame, video_id=1):
     h, w = frame.shape[:2]
 
     cfg = get_roi_config(video_id)
+
+
+    print(cfg)
 
     roi_cfg = cfg.get(
         "roi_traffic_light",

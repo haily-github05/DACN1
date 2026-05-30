@@ -15,6 +15,7 @@ from api.services.red_light_service import (
     draw_stop_line,
     check_red_light_violation
 )
+from api.services.red_light_service import get_camera_config
 
 scan_bp = Blueprint("scan", __name__)
 
@@ -59,6 +60,7 @@ def scan():
     try:
         file = request.files.get("image")
         video_id = int(request.form.get("video_id", 1))
+        print("VIDEO ID =", video_id)
         mode = request.form.get("mode", "image")
         if not file:
             return jsonify({"success": False, "error": "No image"}), 400
@@ -201,6 +203,7 @@ def scan():
             x, y, w, h = box["x"], box["y"], box["w"], box["h"]
 
             center_y = y + h // 2
+            vehicle_bottom = y + h
 
             vehicle_type_en = item["vehicle_type"]
             vehicle_type_vi = vehicle_name_vi.get(vehicle_type_en, vehicle_type_en)
@@ -214,20 +217,39 @@ def scan():
                 check_lane_violation(x + w // 2, center_y, vehicle_type_en)
             )
 
+
+            cfg = get_camera_config(video_id)
+
+            stop_ratio = cfg.get(
+                "stop_line_ratio",
+                0.5
+            )
+
+            stop_line_y = int(
+                frame_raw.shape[0] * stop_ratio
+            )
+
             if is_static_image:
-                if red_light and center_y > int(frame_raw.shape[0] * 0.5):
+
+                if red_light and vehicle_bottom > stop_line_y:
                     violations.append("Vượt đèn đỏ")
+
             else:
+
                 if check_red_light_violation(
                     track_id,
-                    center_y,
+                    vehicle_bottom,
                     frame_raw.shape[0],
                     red_light,
                     video_id
                 ):
                     violations.append("Vượt đèn đỏ")
+            violation_type = (
+                violations[0]
+                if violations
+                else None
+            )
 
-            violation_type = violations[0] if violations else None
             image_name = ""
 
             # =========================

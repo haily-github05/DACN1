@@ -55,8 +55,44 @@ const imageViolations = new Set();
 let currentImageUrl = null;
 
 const API_URL = "http://127.0.0.1:5000/api/scan";
-const STOP_LINE_RATIO = 0.5;
+let cameraConfig = null;
+async function loadConfig(videoId) {
+    try {
 
+        const res =
+            await fetch("/config/camera_config.json");
+
+        const allConfigs =
+            await res.json();
+
+        cameraConfig =
+            allConfigs[videoId];
+
+        console.log(
+            "Camera Config:",
+            cameraConfig
+        );
+
+    } catch (err) {
+
+        console.error(
+            "Không tải được config",
+            err
+        );
+    }
+}
+const videoSelect =
+    document.getElementById("videoSelect");
+
+videoSelect.addEventListener(
+    "change",
+    async () => {
+
+        await loadConfig(
+            videoSelect.value
+        );
+    }
+);
 // =========================
 // VIDEO CONTROL (PLAY/PAUSE & NO AUTOPLAY)
 // =========================
@@ -112,7 +148,10 @@ async function scanFrame() {
         
         const formData = new FormData();
         formData.append("image", blob, "frame.jpg");
-        formData.append("video_id", "1");
+        formData.append(
+            "video_id",
+            videoSelect.value
+        );
         formData.append("mode", "video");
 
         const response = await fetch(API_URL, { method: "POST", body: formData });
@@ -166,18 +205,32 @@ function drawTrafficLight(light, canvasCtx) {
 // =========================
 // STOP LINE
 // =========================
-function drawStopLine(canvasCtx) {
-    const y = overlay.height * STOP_LINE_RATIO;
+function drawStopLine(
+    canvasCtx,
+    canvasWidth,
+    canvasHeight
+) {
+
+    if (!cameraConfig) return;
+
+    const y =
+        canvasHeight *
+        cameraConfig.stop_line_ratio;
+
     canvasCtx.save();
-    canvasCtx.beginPath();
+
     canvasCtx.strokeStyle = "#ff0000";
     canvasCtx.lineWidth = 4;
+
+    canvasCtx.beginPath();
     canvasCtx.moveTo(0, y);
-    canvasCtx.lineTo(overlay.width, y);
+    canvasCtx.lineTo(canvasWidth, y);
     canvasCtx.stroke();
+
     canvasCtx.fillStyle = "#ff0000";
     canvasCtx.font = "bold 18px Arial";
     canvasCtx.fillText("STOP LINE", 20, y - 10);
+
     canvasCtx.restore();
 }
 
@@ -188,7 +241,11 @@ function drawVideoResult(data) {
     if (!data || !data.success || !data.vehicles) return;
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     drawTrafficLight(data.light, ctx);
-    drawStopLine(ctx);
+    drawStopLine(
+        ctx,
+        overlay.width,
+        overlay.height
+    );
     drawVehicles(data.vehicles, ctx, 1, 1, "video");
 }
 // =========================
@@ -685,7 +742,7 @@ btnScanImage.addEventListener(
 
             formData.append(
                 "video_id",
-                "1"
+                videoSelect.value
             );
 
             formData.append(
@@ -753,4 +810,9 @@ btnStartScan.addEventListener(
 btnStopScan.addEventListener(
     "click",
     stopScanning
-);
+); 
+window.addEventListener("load", async () => {
+    if (videoSelect.value) {
+        await loadConfig(videoSelect.value);
+    }
+});

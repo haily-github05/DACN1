@@ -92,7 +92,7 @@ def draw_stop_line(
 # =========================
 def check_red_light_violation(
     track_id,
-    center_y,
+    bottom_y,
     frame_height,
     red_light,
     video_id=1
@@ -118,17 +118,16 @@ def check_red_light_violation(
     # lần đầu xuất hiện
     if track_id not in vehicle_history:
 
-        vehicle_history[track_id] = center_y
-
+        vehicle_history[track_id] = bottom_y
         return False
 
     prev_y = vehicle_history[track_id]
 
-    vehicle_history[track_id] = center_y
+    vehicle_history[track_id] = bottom_y
 
     crossed = (
         prev_y < stop_line_y
-        and center_y >= stop_line_y
+        and bottom_y >= stop_line_y
     )
 
     if (

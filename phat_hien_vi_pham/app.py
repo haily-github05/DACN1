@@ -20,7 +20,14 @@ warnings.filterwarnings(
     message=".*pin_memory.*"
 )
 app = Flask(__name__)
+from flask import send_from_directory
 
+@app.route('/config/<path:filename>')
+def get_config_file(filename):
+    return send_from_directory(
+        'config',
+        filename
+    )
 # =========================
 # CONFIG
 # =========================
