@@ -37,7 +37,6 @@ window.addEventListener("load", async () => {
 
         player.addEventListener("loadeddata", async () => {
             try {
-                console.log("🔥 AI warming...");
 
                 const tempCanvas = document.createElement("canvas");
                 const tempCtx = tempCanvas.getContext("2d");

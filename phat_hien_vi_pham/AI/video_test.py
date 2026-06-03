@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 # LOAD MODEL
-model = YOLO("AI_models/yolo11s.pt")
+model = YOLO("AI_models/yolo11m.pt")
 
 # VIDEO
 video_path = "videos/test1.mp4"

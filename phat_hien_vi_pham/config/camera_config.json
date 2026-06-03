@@ -8,7 +8,7 @@
   },
   "2": {
     "name": "Camera Ngũ Hành Sơn",
-   "stop_line_ratio": 0.84,
+   "stop_line_ratio": 0.8,
     "roi_traffic_light": {
         "y1": 0.05, 
         "y2": 0.45, 
