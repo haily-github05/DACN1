@@ -1,430 +1,430 @@
-from ultralytics import YOLO
-import cv2
-import numpy as np
+# from ultralytics import YOLO
+# import cv2
+# import numpy as np
 
-# =========================
-# LOAD MODELS
-# =========================
+# # =========================
+# # LOAD MODELS
+# # =========================
 
-vehicle_model = YOLO(
-    "AI_models/yolo11s.pt"
-)
+# vehicle_model = YOLO(
+#     "AI_models/yolo11s.pt"
+# )
 
-# model detect biển số thường
-plate_model = YOLO(
-    "AI_models/license_plate_detector.pt"
-)
+# # model detect biển số thường
+# plate_model = YOLO(
+#     "AI_models/license_plate_detector.pt"
+# )
 
-# model biển số Việt Nam
-vn_plate_model = YOLO(
-    "AI_models/vietnam-license-plate.pt"
-)
+# # model biển số Việt Nam
+# vn_plate_model = YOLO(
+#     "AI_models/vietnam-license-plate.pt"
+# )
 
-# =========================
-# VEHICLE CLASSES
-# =========================
+# # =========================
+# # VEHICLE CLASSES
+# # =========================
 
-vehicle_names = {
+# vehicle_names = {
 
-    2: "car",
+#     2: "car",
 
-    3: "motorcycle",
+#     3: "motorcycle",
 
-    5: "bus",
+#     5: "bus",
 
-    7: "truck"
-}
+#     7: "truck"
+# }
 
-# =========================
-# CACHE TRACKED PLATES
-# =========================
+# # =========================
+# # CACHE TRACKED PLATES
+# # =========================
 
-tracked_plates = {}
+# tracked_plates = {}
 
-# =========================
-# DETECT VEHICLES
-# =========================
+# # =========================
+# # DETECT VEHICLES
+# # =========================
 
-def detect_vehicles(
-    frame,
-    imgsz=416,
-    conf=0.5,
-    verbose=False
-):
+# def detect_vehicles(
+#     frame,
+#     imgsz=416,
+#     conf=0.5,
+#     verbose=False
+# ):
 
-    vehicles = []
+#     vehicles = []
 
-    try:
+#     try:
 
-        results = vehicle_model.track(
+#         results = vehicle_model.track(
 
-            frame,
+#             frame,
 
-            persist=True,
+#             persist=True,
 
-            tracker="bytetrack.yaml",
+#             tracker="bytetrack.yaml",
 
-            imgsz=640,
+#             imgsz=640,
 
-            conf=0.4,
+#             conf=0.4,
 
-            iou=0.5,
+#             iou=0.5,
 
-            classes=[2, 3, 5, 7],
+#             classes=[1, 2, 3, 5, 7],
 
-            device="mps",
+#             device="mps",
 
-            verbose=False
-        )
+#             verbose=False
+#         )
 
-    except Exception as e:
+#     except Exception as e:
 
-        print("TRACK ERROR:", e)
+#         print("TRACK ERROR:", e)
 
-        return vehicles
+#         return vehicles
 
-    if not results or len(results) == 0:
-        return vehicles
+#     if not results or len(results) == 0:
+#         return vehicles
 
-    result = results[0]
+#     result = results[0]
 
-    if result.boxes is None:
-        return vehicles
+#     if result.boxes is None:
+#         return vehicles
 
-    # =========================
-    # LOOP VEHICLES
-    # =========================
+#     # =========================
+#     # LOOP VEHICLES
+#     # =========================
 
-    for box in result.boxes:
+#     for box in result.boxes:
 
-        try:
+#         try:
 
-            # =========================
-            # CHECK VALID
-            # =========================
+#             # =========================
+#             # CHECK VALID
+#             # =========================
 
-            if box.cls is None:
-                continue
+#             if box.cls is None:
+#                 continue
 
-            cls = int(box.cls[0])
+#             cls = int(box.cls[0])
 
-            conf = float(box.conf[0])
+#             conf = float(box.conf[0])
 
-            if cls not in vehicle_names:
-                continue
+#             if cls not in vehicle_names:
+#                 continue
 
-            if conf < 0.25:
-                continue
+#             if conf < 0.25:
+#                 continue
 
-            # =========================
-            # TRACK ID
-            # =========================
+#             # =========================
+#             # TRACK ID
+#             # =========================
 
-            track_id = None
+#             track_id = None
 
-            if box.id is not None:
-                track_id = int(box.id[0])
+#             if box.id is not None:
+#                 track_id = int(box.id[0])
 
-            # =========================
-            # BOX
-            # =========================
+#             # =========================
+#             # BOX
+#             # =========================
 
-            x1, y1, x2, y2 = map(
-                int,
-                box.xyxy[0]
-            )
+#             x1, y1, x2, y2 = map(
+#                 int,
+#                 box.xyxy[0]
+#             )
 
-            x1 = max(0, x1)
-            y1 = max(0, y1)
+#             x1 = max(0, x1)
+#             y1 = max(0, y1)
 
-            x2 = min(frame.shape[1], x2)
-            y2 = min(frame.shape[0], y2)
+#             x2 = min(frame.shape[1], x2)
+#             y2 = min(frame.shape[0], y2)
 
-            # =========================
-            # CACHE
-            # =========================
+#             # =========================
+#             # CACHE
+#             # =========================
 
-            if (
-                track_id is not None and
-                track_id in tracked_plates
-            ):
+#             if (
+#                 track_id is not None and
+#                 track_id in tracked_plates
+#             ):
 
-                cached = tracked_plates[track_id]
+#                 cached = tracked_plates[track_id]
 
-                vehicles.append({
+#                 vehicles.append({
 
-                    "track_id":
-                        track_id,
+#                     "track_id":
+#                         track_id,
 
-                    "vehicle_type":
-                        vehicle_names[cls],
+#                     "vehicle_type":
+#                         vehicle_names[cls],
 
-                    "vehicle_box": {
-                        "x": x1,
-                        "y": y1,
-                        "w": x2 - x1,
-                        "h": y2 - y1
-                    },
+#                     "vehicle_box": {
+#                         "x": x1,
+#                         "y": y1,
+#                         "w": x2 - x1,
+#                         "h": y2 - y1
+#                     },
 
-                    "plate_crop":
-                        cached["plate_crop"],
+#                     "plate_crop":
+#                         cached["plate_crop"],
 
-                    "plate_box":
-                        cached["plate_box"]
-                })
+#                     "plate_box":
+#                         cached["plate_box"]
+#                 })
 
-                continue
+#                 continue
 
-            # =========================
-            # VEHICLE CROP
-            # =========================
+#             # =========================
+#             # VEHICLE CROP
+#             # =========================
 
-            vehicle_crop = frame[
-                y1:y2,
-                x1:x2
-            ]
+#             vehicle_crop = frame[
+#                 y1:y2,
+#                 x1:x2
+#             ]
 
-            if vehicle_crop.size == 0:
-                continue
+#             if vehicle_crop.size == 0:
+#                 continue
 
-            # =========================
-            # DETECT VN PLATE
-            # =========================
+#             # =========================
+#             # DETECT VN PLATE
+#             # =========================
 
-            plate_results = vn_plate_model(
+#             plate_results = vn_plate_model(
 
-                vehicle_crop,
+#                 vehicle_crop,
 
-                conf=0.35,
+#                 conf=0.35,
 
-                imgsz=640,
+#                 imgsz=640,
 
-                device="mps",
+#                 device="mps",
 
-                verbose=False
-            )
+#                 verbose=False
+#             )
 
-            # =========================
-            # FALLBACK MODEL
-            # =========================
+#             # =========================
+#             # FALLBACK MODEL
+#             # =========================
 
-            if (
-                not plate_results or
-                len(plate_results[0].boxes) == 0
-            ):
+#             if (
+#                 not plate_results or
+#                 len(plate_results[0].boxes) == 0
+#             ):
 
-                plate_results = plate_model(
+#                 plate_results = plate_model(
 
-                    vehicle_crop,
+#                     vehicle_crop,
 
-                    conf=0.25,
+#                     conf=0.25,
 
-                    device="mps",
+#                     device="mps",
 
-                    verbose=False
-                )
+#                     verbose=False
+#                 )
 
-            # =========================
-            # DEFAULT
-            # =========================
+#             # =========================
+#             # DEFAULT
+#             # =========================
 
-            plate_crop_final = None
+#             plate_crop_final = None
 
-            plate_box_final = None
+#             plate_box_final = None
 
-            # =========================
-            # PLATE FOUND
-            # =========================
+#             # =========================
+#             # PLATE FOUND
+#             # =========================
 
-            if (
-                plate_results and
-                len(plate_results[0].boxes) > 0
-            ):
+#             if (
+#                 plate_results and
+#                 len(plate_results[0].boxes) > 0
+#             ):
 
-                # best box
-                best_box = max(
+#                 # best box
+#                 best_box = max(
 
-                    plate_results[0].boxes,
+#                     plate_results[0].boxes,
 
-                    key=lambda b:
-                        float(b.conf[0])
-                )
+#                     key=lambda b:
+#                         float(b.conf[0])
+#                 )
 
-                px1, py1, px2, py2 = map(
-                    int,
-                    best_box.xyxy[0]
-                )
+#                 px1, py1, px2, py2 = map(
+#                     int,
+#                     best_box.xyxy[0]
+#                 )
 
-                # =========================
-                # PADDING
-                # =========================
+#                 # =========================
+#                 # PADDING
+#                 # =========================
 
-                pad = 10
+#                 pad = 10
 
-                px1 = max(0, px1 - pad)
-                py1 = max(0, py1 - pad)
+#                 px1 = max(0, px1 - pad)
+#                 py1 = max(0, py1 - pad)
 
-                px2 = min(
-                    vehicle_crop.shape[1],
-                    px2 + pad
-                )
+#                 px2 = min(
+#                     vehicle_crop.shape[1],
+#                     px2 + pad
+#                 )
 
-                py2 = min(
-                    vehicle_crop.shape[0],
-                    py2 + pad
-                )
+#                 py2 = min(
+#                     vehicle_crop.shape[0],
+#                     py2 + pad
+#                 )
 
-                # =========================
-                # CROP PLATE
-                # =========================
+#                 # =========================
+#                 # CROP PLATE
+#                 # =========================
 
-                plate_crop = vehicle_crop[
-                    py1:py2,
-                    px1:px2
-                ]
+#                 plate_crop = vehicle_crop[
+#                     py1:py2,
+#                     px1:px2
+#                 ]
 
-                if plate_crop.size > 0:
+#                 if plate_crop.size > 0:
 
-                    # =========================
-                    # UPSCALE
-                    # =========================
+#                     # =========================
+#                     # UPSCALE
+#                     # =========================
 
-                    plate_crop_final = cv2.resize(
+#                     plate_crop_final = cv2.resize(
 
-                        plate_crop,
+#                         plate_crop,
 
-                        None,
+#                         None,
 
-                        fx=3,
+#                         fx=3,
 
-                        fy=3,
+#                         fy=3,
 
-                        interpolation=cv2.INTER_CUBIC
-                    )
+#                         interpolation=cv2.INTER_CUBIC
+#                     )
 
-                    # =========================
-                    # DENOISE
-                    # =========================
+#                     # =========================
+#                     # DENOISE
+#                     # =========================
 
-                    plate_crop_final = cv2.fastNlMeansDenoisingColored(
+#                     plate_crop_final = cv2.fastNlMeansDenoisingColored(
 
-                        plate_crop_final,
+#                         plate_crop_final,
 
-                        None,
+#                         None,
 
-                        10,
+#                         10,
 
-                        10,
+#                         10,
 
-                        7,
+#                         7,
 
-                        21
-                    )
+#                         21
+#                     )
 
-                    # =========================
-                    # SHARPEN
-                    # =========================
+#                     # =========================
+#                     # SHARPEN
+#                     # =========================
 
-                    kernel = np.array([
+#                     kernel = np.array([
 
-                        [0, -1, 0],
+#                         [0, -1, 0],
 
-                        [-1, 5, -1],
+#                         [-1, 5, -1],
 
-                        [0, -1, 0]
-                    ])
+#                         [0, -1, 0]
+#                     ])
 
-                    plate_crop_final = cv2.filter2D(
+#                     plate_crop_final = cv2.filter2D(
 
-                        plate_crop_final,
+#                         plate_crop_final,
 
-                        -1,
+#                         -1,
 
-                        kernel
-                    )
+#                         kernel
+#                     )
 
-                    # =========================
-                    # CONTRAST
-                    # =========================
+#                     # =========================
+#                     # CONTRAST
+#                     # =========================
 
-                    plate_crop_final = cv2.convertScaleAbs(
+#                     plate_crop_final = cv2.convertScaleAbs(
 
-                        plate_crop_final,
+#                         plate_crop_final,
 
-                        alpha=1.2,
+#                         alpha=1.2,
 
-                        beta=10
-                    )
+#                         beta=10
+#                     )
 
-                    # =========================
-                    # SAVE PLATE BOX
-                    # =========================
+#                     # =========================
+#                     # SAVE PLATE BOX
+#                     # =========================
 
-                    plate_box_final = {
+#                     plate_box_final = {
 
-                        "x": x1 + px1,
+#                         "x": x1 + px1,
 
-                        "y": y1 + py1,
+#                         "y": y1 + py1,
 
-                        "w": px2 - px1,
+#                         "w": px2 - px1,
 
-                        "h": py2 - py1
-                    }
+#                         "h": py2 - py1
+#                     }
 
-                    # =========================
-                    # CACHE
-                    # =========================
+#                     # =========================
+#                     # CACHE
+#                     # =========================
 
-                    if track_id is not None:
+#                     if track_id is not None:
 
-                        tracked_plates[track_id] = {
+#                         tracked_plates[track_id] = {
 
-                            "plate_crop":
-                                plate_crop_final,
+#                             "plate_crop":
+#                                 plate_crop_final,
 
-                            "plate_box":
-                                plate_box_final
-                        }
+#                             "plate_box":
+#                                 plate_box_final
+#                         }
 
-                        # limit cache
-                        if len(tracked_plates) > 200:
+#                         # limit cache
+#                         if len(tracked_plates) > 200:
 
-                            tracked_plates.pop(
-                                next(iter(tracked_plates))
-                            )
+#                             tracked_plates.pop(
+#                                 next(iter(tracked_plates))
+#                             )
 
-            # =========================
-            # APPEND
-            # =========================
+#             # =========================
+#             # APPEND
+#             # =========================
 
-            vehicles.append({
+#             vehicles.append({
 
-                "track_id":
-                    track_id,
+#                 "track_id":
+#                     track_id,
 
-                "vehicle_type":
-                    vehicle_names[cls],
+#                 "vehicle_type":
+#                     vehicle_names[cls],
 
-                "vehicle_box": {
+#                 "vehicle_box": {
 
-                    "x": x1,
+#                     "x": x1,
 
-                    "y": y1,
+#                     "y": y1,
 
-                    "w": x2 - x1,
+#                     "w": x2 - x1,
 
-                    "h": y2 - y1
-                },
+#                     "h": y2 - y1
+#                 },
 
-                "plate_crop":
-                    plate_crop_final,
+#                 "plate_crop":
+#                     plate_crop_final,
 
-                "plate_box":
-                    plate_box_final
-            })
+#                 "plate_box":
+#                     plate_box_final
+#             })
 
-        except Exception as e:
+#         except Exception as e:
 
-            print("BOX ERROR:", e)
+#             print("BOX ERROR:", e)
 
-    return vehicles
+#     return vehicles

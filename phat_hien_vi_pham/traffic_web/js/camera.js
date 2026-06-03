@@ -17,6 +17,7 @@ function formatStatus(status) {
 // ELEMENTS
 // =========================
 const video = document.getElementById("videoPlayer");
+video.playbackRate = 0.5;
 const overlay = document.getElementById("overlayCanvas");
 const ctx = overlay.getContext("2d");
 const captureCanvas = document.getElementById("captureCanvas");
@@ -132,9 +133,13 @@ window.addEventListener("resize", resizeCanvas);
 // =========================
 async function loopScan() {
     if (!autoScan) return;
+
     await scanFrame();
-    const SCAN_DELAY = video.readyState >= 3 ? 700 : 1500;
-    scanLoopTimeout = setTimeout(loopScan, SCAN_DELAY);
+
+    const baseFPS = 1000;
+    const speedFactor = video.playbackRate || 1;
+
+    scanLoopTimeout = setTimeout(loopScan, baseFPS / speedFactor);
 }
 
 async function scanFrame() {
@@ -252,272 +257,109 @@ function drawVideoResult(data) {
 // IMAGE RESULT
 // =========================
 function drawImageResult(data) {
+    if (!data || !data.success || !data.vehicles) return;
 
-    if (
-        !data ||
-        !data.success ||
-        !data.vehicles
-    ) {
-        return;
-    }
+    imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
 
-    imageCtx.clearRect(
-        0,
-        0,
-        imageCanvas.width,
-        imageCanvas.height
-    );
+    const scaleX = imageCanvas.width / previewImage.naturalWidth;
+    const scaleY = imageCanvas.height / previewImage.naturalHeight;
 
-    const scaleX =
-        imageCanvas.width /
-        previewImage.naturalWidth;
+    // ❌ KHÔNG vẽ đèn giao thông trong chế độ image
+    // drawTrafficLight(data.light, imageCtx);
 
-    const scaleY =
-        imageCanvas.height /
-        previewImage.naturalHeight;
+    // (optional) nếu muốn chắc chắn bỏ luôn dữ liệu lỗi từ backend
+    const cleanVehicles = data.vehicles.map(v => ({
+        ...v,
+        violation: null,   // chặn vi phạm
+    }));
 
-    drawTrafficLight(
-        data.light,
-        imageCtx
-    );
-
-    drawVehicles(
-        data.vehicles,
-        imageCtx,
-        scaleX,
-        scaleY,
-        "image"
-    );
+    drawVehicles(cleanVehicles, imageCtx, scaleX, scaleY, "image");
 }
 
 // =========================
 // DRAW VEHICLES
 // =========================
-function drawVehicles(
-    vehicles,
-    canvasCtx,
-    scaleX = 1,
-    scaleY = 1,
-    mode = "video"
-) {
-
+function drawVehicles(vehicles, canvasCtx, scaleX = 1, scaleY = 1, mode = "video") {
     const drawn = [];
 
     canvasCtx.imageSmoothingEnabled = true;
-
-    canvasCtx.font =
-        "500 12px Arial";
-
-    canvasCtx.textBaseline =
-        "middle";
+    canvasCtx.font = "500 12px Arial";
+    canvasCtx.textBaseline = "middle";
 
     vehicles.forEach(v => {
-
-        const b = v.box;
-
+        // Kiểm tra xem dữ liệu box nằm ở đâu (v.box hoặc v.vehicle_box)
+        const b = v.vehicle_box || v.box; 
         if (!b) return;
 
-        let x =
-            Math.round(
-                b.x * scaleX
-            );
+        let x = Math.round(b.x * scaleX);
+        let y = Math.round(b.y * scaleY);
+        let w = Math.round(b.w * scaleX);
+        let h = Math.round(b.h * scaleY);
 
-        let y =
-            Math.round(
-                b.y * scaleY
-            );
+        // Lọc các box quá nhỏ (nhiễu)
+        if (w < 35 || h < 35) return;
 
-        let w =
-            Math.round(
-                b.w * scaleX
-            );
-
-        let h =
-            Math.round(
-                b.h * scaleY
-            );
-
-        if (
-            w < 35 ||
-            h < 35
-        ) {
-            return;
-        }
-
-        const color =
-            v.violation
-                ? "#FF2D55"
-                : "#00E676";
+        // Logic màu sắc: Nếu là chế độ ảnh, luôn là màu xanh. 
+        // Nếu video, xanh là an toàn, đỏ là vi phạm.
+        const isViolation = mode === "video" && v.violation;
+        const color = isViolation ? "#FF2D55" : "#00E676";
 
         // =========================
-        // BOX
+        // 1. VẼ BOX
         // =========================
         canvasCtx.beginPath();
-
-        canvasCtx.strokeStyle =
-            color;
-
+        canvasCtx.strokeStyle = color;
         canvasCtx.lineWidth = 2;
-
-        canvasCtx.lineJoin =
-            "round";
-
-        canvasCtx.lineCap =
-            "round";
-
-        canvasCtx.shadowColor =
-            color;
-
+        canvasCtx.lineJoin = "round";
+        canvasCtx.lineCap = "round";
+        canvasCtx.shadowColor = color;
         canvasCtx.shadowBlur = 8;
 
         if (canvasCtx.roundRect) {
-
-            canvasCtx.roundRect(
-                x,
-                y,
-                w,
-                h,
-                6
-            );
-
+            canvasCtx.roundRect(x, y, w, h, 6);
         } else {
-
-            canvasCtx.rect(
-                x,
-                y,
-                w,
-                h
-            );
+            canvasCtx.rect(x, y, w, h);
         }
-
         canvasCtx.stroke();
-
         canvasCtx.shadowBlur = 0;
 
         // =========================
-        // LABEL
+        // 2. VẼ LABEL
         // =========================
-        const label =
-            `${v.vehicle_type || "Xe"} | ${v.plate || "Unknown"}`;
-
-        const tw =
-            canvasCtx.measureText(
-                label
-            ).width + 12;
-
+        const label = `${v.vehicle_type || "Xe"} | ${v.plate || "Unknown"}`;
+        const tw = canvasCtx.measureText(label).width + 12;
         const th = 22;
+        let ly = y - th - 3;
 
-        let ly =
-            y - th - 3;
+        if (ly < 5) ly = y + 3;
 
-        if (ly < 5) {
-            ly = y + 3;
-        }
-
+        // Tránh ghi đè các nhãn lên nhau
         drawn.forEach(p => {
-
-            if (
-                Math.abs(
-                    p.x - x
-                ) < tw &&
-                Math.abs(
-                    p.y - ly
-                ) < th
-            ) {
-                ly =
-                    p.y - th - 3;
+            if (Math.abs(p.x - x) < tw && Math.abs(p.y - ly) < th) {
+                ly = p.y - th - 3;
             }
         });
+        drawn.push({ x, y: ly });
 
-        drawn.push({
-            x,
-            y: ly
-        });
-
-        canvasCtx.fillStyle =
-            v.violation
-                ? "rgba(255,45,85,0.85)"
-                : "rgba(0,230,118,0.85)";
-
+        canvasCtx.fillStyle = isViolation ? "rgba(255,45,85,0.85)" : "rgba(0,230,118,0.85)";
         canvasCtx.beginPath();
-
         if (canvasCtx.roundRect) {
-
-            canvasCtx.roundRect(
-                x,
-                ly,
-                tw,
-                th,
-                4
-            );
-
+            canvasCtx.roundRect(x, ly, tw, th, 4);
             canvasCtx.fill();
-
         } else {
-
-            canvasCtx.fillRect(
-                x,
-                ly,
-                tw,
-                th
-            );
+            canvasCtx.fillRect(x, ly, tw, th);
         }
-
-        canvasCtx.fillStyle =
-            "#fff";
-
-        canvasCtx.fillText(
-            label,
-            x + 6,
-            ly + th / 2
-        );
+        canvasCtx.fillStyle = "#fff";
+        canvasCtx.fillText(label, x + 6, ly + th / 2);
 
         // =========================
-        // VIOLATION TABLE
+        // 3. XỬ LÝ VIOLATION TABLE (Chỉ chạy với Video)
         // =========================
-        if (
-            v.violation &&
-            v.plate &&
-            v.plate !== "Unknown"
-        ) {
-
-            const key =
-                `${v.track_id || v.plate}_${v.violation}`;
-
-            if (
-                mode === "video"
-            ) {
-
-                if (
-                    !videoViolations.has(
-                        key
-                    )
-                ) {
-
-                    videoViolations.add(
-                        key
-                    );
-
-                    addViolationRow(v);
-                }
-            }
-
-            if (
-                mode === "image"
-            ) {
-
-                if (
-                    !imageViolations.has(
-                        key
-                    )
-                ) {
-
-                    imageViolations.add(
-                        key
-                    );
-
-                    addViolationRow(v);
-                }
+        if (mode === "video" && v.violation && v.plate && v.plate !== "Unknown") {
+            const key = `${v.track_id || v.plate}_${v.violation}`;
+            if (!videoViolations.has(key)) {
+                videoViolations.add(key);
+                addViolationRow(v); // Chỉ thêm vào bảng khi đang quét video
             }
         }
     });

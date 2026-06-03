@@ -1,4 +1,3 @@
-
 from flask import Blueprint, request, jsonify
 import os
 import time
@@ -11,17 +10,11 @@ from api.services.ocr_service import detect_plate
 from api.services.traffic_light_service import detect_traffic_light
 
 from api.routes.lane_routes import draw_zones, check_lane_violation
-from api.services.red_light_service import (
-    draw_stop_line,
-    check_red_light_violation
-)
+from api.services.red_light_service import draw_stop_line, check_red_light_violation
 from api.services.red_light_service import get_camera_config
 
 scan_bp = Blueprint("scan", __name__)
 
-# =========================
-# CACHE (video tracking)
-# =========================
 plate_cache = {}
 
 # =========================
@@ -40,7 +33,8 @@ vehicle_map = {
     "car": 2,
     "bus": 3,
     "truck": 4,
-    "person": 5
+    "person": 5,
+    "bicycle": 6
 }
 
 vehicle_name_vi = {
@@ -48,96 +42,59 @@ vehicle_name_vi = {
     "car": "Ô tô",
     "bus": "Xe buýt",
     "truck": "Xe tải",
-    "person": "Người đi bộ"
+    "person": "Người đi bộ",
+    "bicycle": "Xe đạp"
 }
 
 
+# =========================
+# MAIN API
+# =========================
 @scan_bp.route("/api/scan", methods=["POST"])
 def scan():
+
     conn = None
     cursor = None
 
     try:
         file = request.files.get("image")
         video_id = int(request.form.get("video_id", 1))
-        print("VIDEO ID =", video_id)
         mode = request.form.get("mode", "image")
+
         if not file:
             return jsonify({"success": False, "error": "No image"}), 400
 
         np_arr = np.frombuffer(file.read(), np.uint8)
-        frame_raw = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        if frame_raw is None:
+        if frame is None:
             return jsonify({"success": False, "error": "Decode failed"}), 400
 
         # =========================
         # TRAFFIC LIGHT
         # =========================
-        traffic_light = detect_traffic_light(frame_raw, video_id=video_id) or {"red": False, "box": None}
+        traffic = detect_traffic_light(frame, video_id)
 
-        red_light = traffic_light["red"]
-        light_box = traffic_light["box"]
-
-        # =========================
-        # VEHICLE DETECTION
-        # =========================
-        detected = detect_vehicles(
-            frame_raw,
-            mode=mode,
-            imgsz=640,
-            verbose=False,
-            conf=0.4
-        ) or []
+        red_light = traffic["red"]
+        light_box = traffic["box"]
 
         # =========================
-        # DRAW FRAME
+        # VEHICLES
         # =========================
-        frame_visual = frame_raw.copy()
+        detected = detect_vehicles(frame, mode=mode, imgsz=640, conf=0.4) or []
+
+        frame_visual = frame.copy()
 
         draw_zones(frame_visual)
-        draw_stop_line(
-            frame_visual,
-            red_light,
-            video_id
-        )
+        draw_stop_line(frame_visual, red_light, video_id)
 
-        if light_box:
-            lx, ly, lw, lh = (
-                light_box["x"],
-                light_box["y"],
-                light_box["w"],
-                light_box["h"]
-            )
-
-            color = (0, 255, 0)
-            label = "GREEN"
-
-            if red_light:
-                color = (0, 0, 255)
-                label = "RED"
-
-            elif traffic_light.get("light") == "yellow":
-                color = (0, 255, 255)
-                label = "YELLOW"
-
-            cv2.rectangle(
-                frame_visual,
-                (lx, ly),
-                (lx + lw, ly + lh),
-                color,
-                3
-            )
-
-            cv2.putText(
-                frame_visual,
-                f"TRAFFIC LIGHT: {label}",
-                (lx, ly - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                color,
-                2
-            )
+        # =========================
+        # DRAW TRAFFIC LIGHT
+        # =========================
+        if isinstance(light_box, dict):
+            lx, ly, lw, lh = light_box["x"], light_box["y"], light_box["w"], light_box["h"]
+        else:
+            lx = ly = lw = lh = 0
 
         # =========================
         # DB CONNECT
@@ -156,106 +113,68 @@ def scan():
             plate = "Unknown"
             track_id = item.get("track_id")
 
-            is_static_image = (
-                track_id is None
-                or track_id == -1
-                or str(track_id).strip() == ""
-            )
+            is_static = track_id in [None, -1, ""]
 
-            # =========================
-            # PLATE OCR
-            # =========================
             plate_crop = item.get("plate_crop")
 
-            if plate_crop is not None and isinstance(plate_crop, np.ndarray) and plate_crop.size > 0:
+            # =========================
+            # OCR
+            # =========================
+            if isinstance(plate_crop, np.ndarray) and plate_crop.size > 0:
 
-                if is_static_image:
-                    ocr_res = detect_plate(plate_crop)
-                    if ocr_res and ocr_res != "Unknown":
-                        plate = ocr_res
-
+                if is_static:
+                    res = detect_plate(plate_crop)
+                    if res != "Unknown":
+                        plate = res
                 else:
-                    track_id = int(track_id)
-
                     if track_id in plate_cache:
                         plate = plate_cache[track_id]
                     else:
-                        ocr_res = detect_plate(plate_crop)
-
-                        if ocr_res and ocr_res != "Unknown":
-                            plate = ocr_res
-
-                        if plate != "Unknown":
+                        res = detect_plate(plate_crop)
+                        if res != "Unknown":
+                            plate = res
                             plate_cache[track_id] = plate
 
                         if len(plate_cache) > 300:
                             plate_cache.pop(next(iter(plate_cache)))
+
+            # =========================
+            # BOX SAFE
+            # =========================
+            box = item.get("vehicle_box")
+
+            if isinstance(box, dict):
+                x, y, w, h = box["x"], box["y"], box["w"], box["h"]
             else:
-                plate = "Unknown"
-
-            if is_static_image:
-                track_id = int(time.time() * 1000) + len(vehicles)
-
-            # =========================
-            # VEHICLE BOX
-            # =========================
-            box = item["vehicle_box"]
-            x, y, w, h = box["x"], box["y"], box["w"], box["h"]
+                x, y, w, h = box
 
             center_y = y + h // 2
-            vehicle_bottom = y + h
+            bottom = y + h
 
-            vehicle_type_en = item["vehicle_type"]
-            vehicle_type_vi = vehicle_name_vi.get(vehicle_type_en, vehicle_type_en)
+            vehicle_type = item["vehicle_type"]
+            vehicle_vi = vehicle_name_vi.get(vehicle_type, vehicle_type)
 
             # =========================
-            # VIOLATIONS
+            # VIOLATION
             # =========================
             violations = []
-
-            violations.extend(
-                check_lane_violation(x + w // 2, center_y, vehicle_type_en)
-            )
-
+            violations.extend(check_lane_violation(x + w // 2, center_y, vehicle_type))
 
             cfg = get_camera_config(video_id)
+            stop_y = int(frame.shape[0] * cfg.get("stop_line_ratio", 0.5))
 
-            stop_ratio = cfg.get(
-                "stop_line_ratio",
-                0.5
-            )
+            if is_static and red_light and bottom > stop_y:
+                violations.append("Vượt đèn đỏ")
 
-            stop_line_y = int(
-                frame_raw.shape[0] * stop_ratio
-            )
-
-            if is_static_image:
-
-                if red_light and vehicle_bottom > stop_line_y:
-                    violations.append("Vượt đèn đỏ")
-
-            else:
-
-                if check_red_light_violation(
-                    track_id,
-                    vehicle_bottom,
-                    frame_raw.shape[0],
-                    red_light,
-                    video_id
-                ):
-                    violations.append("Vượt đèn đỏ")
-            violation_type = (
-                violations[0]
-                if violations
-                else None
-            )
+            violation_type = violations[0] if violations else None
 
             image_name = ""
 
             # =========================
-            # SAVE EVIDENCE
+            # SAVE
             # =========================
             if violation_type:
+
                 os.makedirs("evidences", exist_ok=True)
 
                 image_name = f"{int(time.time()*1000)}_{plate}.jpg"
@@ -263,24 +182,18 @@ def scan():
 
                 evidence = frame_visual.copy()
 
-                cv2.rectangle(evidence, (x, y), (x + w, y + h), (0, 0, 255), 2)
-                cv2.putText(
-                    evidence,
-                    f"{violation_type} ({plate})",
-                    (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (0, 0, 255),
-                    2
-                )
+                cv2.rectangle(evidence, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                cv2.putText(evidence, f"{violation_type} ({plate})",
+                            (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
 
                 cv2.imwrite(path, evidence)
 
-                vehicle_id = vehicle_map.get(vehicle_type_en)
+                vehicle_id = vehicle_map.get(vehicle_type)
 
                 if vehicle_id:
                     cursor.execute("""
-                        INSERT INTO violations (vehicle_id, type, time, video_id, plate, image, status)
+                        INSERT INTO violations
+                        (vehicle_id, type, time, video_id, plate, image, status)
                         VALUES (%s, %s, NOW(), %s, %s, %s, %s)
                     """, (
                         vehicle_id,
@@ -291,13 +204,10 @@ def scan():
                         "pending"
                     ))
 
-            # =========================
-            # RESPONSE
-            # =========================
             vehicles.append({
                 "track_id": track_id,
                 "plate": plate,
-                "vehicle_type": vehicle_type_vi,
+                "vehicle_type": vehicle_vi,
                 "violation": violation_type,
                 "image": image_name,
                 "box": {"x": x, "y": y, "w": w, "h": h},
@@ -310,7 +220,7 @@ def scan():
             "success": True,
             "vehicles": vehicles,
             "red_light": red_light,
-            "light": traffic_light.get("light", "green")
+            "light": traffic["light"]
         })
 
     except Exception as e:

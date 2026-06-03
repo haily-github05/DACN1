@@ -15,7 +15,7 @@ class LicensePlateDetector:
     def detect_and_read(self, vehicle_img):
         plate_text = "Unknown"
         # Dự đoán vị trí biển số bằng model đã nạp
-        results = self.plate_model(vehicle_img, verbose=False)
+        results = self.plate_model(vehicle_img)
         
         for result in results:
             for box in result.boxes:

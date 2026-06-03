@@ -6,6 +6,9 @@ from ultralytics import YOLO
 
 # Khởi tạo
 plate_model = YOLO("AI_models/license_plate_detector.pt")
+vn_plate_model = YOLO(
+    "AI_models/vietnam-license-plate.pt"
+)
 reader = easyocr.Reader(['en'], gpu=False)
 
 def clean_plate(text):
@@ -32,7 +35,7 @@ def detect_plate(frame):
     try:
         if frame is None: return "Unknown"
 
-        results = plate_model.predict(frame, conf=0.4, verbose=False)
+        results = plate_model.predict(frame, conf=0.4)
         if not results[0].boxes: return "Unknown"
 
         best_box = max(results[0].boxes, key=lambda b: float(b.conf[0]))
