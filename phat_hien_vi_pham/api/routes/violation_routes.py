@@ -3,9 +3,6 @@ import mysql.connector
 
 violation_bp = Blueprint("violation_bp", __name__)
 
-# =========================
-# LẤY DANH SÁCH VI PHẠM
-# =========================
 @violation_bp.route("/api/violations", methods=["GET"])
 def get_violations():
 

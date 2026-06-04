@@ -21,9 +21,6 @@ scan_bp = Blueprint("scan", __name__)
 
 plate_cache = {}
 
-# =========================
-# DB CONFIG
-# =========================
 db_config = {
     "host": "127.0.0.1",
     "port": 3308,
@@ -48,10 +45,6 @@ vehicle_name_vi = {
     "person": "NGƯỜI ĐI BỘ",
 }
 
-
-# =========================
-# MAIN API
-# =========================
 @scan_bp.route("/api/scan", methods=["POST"])
 def scan():
 
@@ -72,17 +65,11 @@ def scan():
         if frame is None:
             return jsonify({"success": False, "error": "Decode failed"}), 400
 
-        # =========================
-        # TRAFFIC LIGHT
-        # =========================
         traffic = detect_traffic_light(frame, video_id)
 
         red_light = traffic["red"]
         light_box = traffic["box"]
 
-        # =========================
-        # VEHICLES
-        # =========================
         detected = detect_vehicles(frame, mode=mode, imgsz=736, conf=0.18) or []
 
         frame_visual = frame.copy()
@@ -90,26 +77,18 @@ def scan():
         draw_zones(frame_visual,video_id=video_id)
         draw_stop_line(frame_visual, red_light, video_id)
 
-        # =========================
-        # DRAW TRAFFIC LIGHT
-        # =========================
         if isinstance(light_box, dict):
             lx, ly, lw, lh = light_box["x"], light_box["y"], light_box["w"], light_box["h"]
         else:
             lx = ly = lw = lh = 0
 
-        # =========================
-        # DB CONNECT
-        # =========================
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
         conn.autocommit = True
 
         vehicles = []
 
-        # =========================
-        # PROCESS VEHICLES
-        # =========================
+
         for item in detected:
 
             plate = "Unknown"
@@ -118,10 +97,8 @@ def scan():
             is_static = track_id in [None, -1, ""]
 
             plate_crop = item.get("plate_crop")
-
-            # =========================
-            # OCR
-            # =========================
+            
+            
             if isinstance(plate_crop, np.ndarray) and plate_crop.size > 0:
 
                 if is_static:
@@ -143,9 +120,7 @@ def scan():
                         if len(plate_cache) > 300:
                             plate_cache.pop(next(iter(plate_cache)))
 
-            # =========================
-            # BOX SAFE
-            # =========================
+ 
             box = item.get("vehicle_box")
 
             if isinstance(box, dict):
@@ -159,10 +134,8 @@ def scan():
 
             vehicle_type = item["vehicle_type"]
             vehicle_vi = vehicle_name_vi.get(vehicle_type, vehicle_type)
-
-            # =========================
-            # VIOLATION
-            # =========================
+ 
+ 
             violations = []
 
             lane_errors = check_lane_violation(
@@ -201,9 +174,7 @@ def scan():
 
             image_name = ""
 
-            # =========================
-            # SAVE
-            # =========================
+ 
             if violation_type:
 
                 os.makedirs("evidences", exist_ok=True)

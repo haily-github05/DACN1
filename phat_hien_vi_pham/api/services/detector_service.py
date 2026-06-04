@@ -1,9 +1,6 @@
 from ultralytics import YOLO
 import cv2
 
-# =========================
-# MODELS
-# =========================
 vehicle_model = YOLO("AI_models/yolo11m.pt")
 plate_model = YOLO("AI_models/license_plate_detector.pt")
 
@@ -14,9 +11,6 @@ vehicle_names = {
     7: "truck"
 }
 
-# =========================
-# MEMORY
-# =========================
 active_tracks = {}
 fake_track_memory = {}
 next_fake_id = 10000
@@ -70,16 +64,12 @@ def get_fake_track_id(xyxy):
 
 
 def crop_plate_fallback(vehicle_crop):
-    """
-    Fallback khi YOLO biển số không detect được.
-    Chỉ crop vùng dưới giữa xe, tránh lấy chữ HONDA phía trên.
-    """
+
     if vehicle_crop is None or vehicle_crop.size == 0:
         return None, None
 
     vh, vw = vehicle_crop.shape[:2]
 
-    # vùng dưới giữa xe máy
     fx1 = int(vw * 0.25)
     fx2 = int(vw * 0.75)
     fy1 = int(vh * 0.55)
@@ -99,23 +89,18 @@ def crop_plate_fallback(vehicle_crop):
 
 
 def detect_plate_crop(vehicle_crop):
-    """
-    Trả về plate_crop và plate_box tương đối trong vehicle_crop.
-    Ưu tiên YOLO biển số, nếu fail thì fallback crop vùng dưới xe.
-    """
+
     if vehicle_crop is None or vehicle_crop.size == 0:
         return None, None
 
     plate_crop = None
     plate_box = None
 
-    # =========================
-    # 1. YOLO LICENSE PLATE
-    # =========================
+
     plate_results = plate_model(
         vehicle_crop,
         conf=0.35,
-        device="cpu",
+        device="mps",
         verbose=False
     )
 
@@ -127,7 +112,6 @@ def detect_plate_crop(vehicle_crop):
 
         px1, py1, px2, py2 = map(int, best.xyxy[0])
 
-        # chỉ pad nhẹ, không lấy quá rộng
         p_pad = 4
 
         px1 = max(0, px1 - p_pad)
@@ -146,9 +130,6 @@ def detect_plate_crop(vehicle_crop):
                 "h": py2 - py1
             }
 
-    # =========================
-    # 2. FALLBACK
-    # =========================
     if plate_crop is None:
         plate_crop, plate_box = crop_plate_fallback(vehicle_crop)
 
@@ -167,10 +148,7 @@ def detect_plate_crop(vehicle_crop):
 
 
 def remove_duplicate_boxes(vehicles):
-    """
-    Xoá box nhỏ bị chồng lên box lớn cùng loại.
-    Tránh 1 xe hiện 2 khung.
-    """
+
     result = []
 
     for i, a in enumerate(vehicles):
@@ -236,10 +214,10 @@ def detect_vehicles(
             persist=True,
             tracker="trackers/bytetrack.yaml",
             imgsz=960,
-            conf=0.35,
+            conf=0.2,
             iou=0.5,
             classes=[2, 3, 5, 7],
-            device="cpu",
+            device="mps",
             verbose=False
         )
     else:
@@ -268,8 +246,8 @@ def detect_vehicles(
         x1, y1, x2, y2 = map(int, box.xyxy[0])
 
         # bỏ box ma dính mép dưới
-        if y2 >= h_frame - 3:
-            continue
+        # if y2 >= h_frame - 3:
+        #     continue
 
         track_id = -1
 
@@ -281,7 +259,6 @@ def detect_vehicles(
 
             active_tracks[track_id] = (x1, y1, x2, y2)
 
-        # pad nhẹ cho box xe
         pad = 2
 
         x1 = max(0, x1 - pad)

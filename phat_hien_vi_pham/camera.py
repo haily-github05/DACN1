@@ -7,20 +7,13 @@ import numpy as np
 
 from ultralytics import YOLO
 import easyocr
-
-# =========================
-# BLUEPRINT
-# =========================
-
+ 
 camera_bp = Blueprint(
     "camera",
     __name__
 )
 
-# =========================
-# LOAD MODEL
-# =========================
-
+ 
 model = YOLO("AI_models/yolo11m.pt")
 
 reader = easyocr.Reader(
@@ -28,10 +21,7 @@ reader = easyocr.Reader(
     gpu=False
 )
 
-# =========================
-# API SCAN
-# =========================
-
+ 
 @camera_bp.route(
     "/api/scan",
     methods=["POST"]
@@ -44,7 +34,7 @@ def scan_vehicle():
 
         image_data = data["image"]
 
-        # remove base64 header
+  
         image_data = image_data.split(",")[1]
 
         image_bytes = base64.b64decode(
@@ -73,7 +63,6 @@ def scan_vehicle():
 
                 conf = float(box.conf[0])
 
-                # car motorcycle bus truck
                 if cls in [2, 3, 5, 7] and conf > 0.4:
 
                     x1, y1, x2, y2 = map(

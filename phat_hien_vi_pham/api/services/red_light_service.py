@@ -2,9 +2,6 @@ import cv2
 import json
 import os
 
-# =========================
-# CONFIG
-# =========================
 config_path = os.path.join(
     os.path.dirname(__file__),
     "../../config/camera_config.json"
@@ -15,7 +12,7 @@ vehicle_history = {}
 def get_camera_config(video_id=1):
     global current_light, last_detect_time
     
-    # Khối cấu hình mặc định (Bảo hiểm Fallback cấp cao nhất)
+
     fallback = {
         "1": {
             "name": "Camera Ngũ Hành Sơn",
@@ -50,7 +47,6 @@ def get_camera_config(video_id=1):
     }
 
     try:
-        # Cơ chế quét tìm file cấu hình động an toàn tuyệt đối từ code dưới
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         possible_paths = [
             os.path.join(base_dir, "config", "camera_config.json"),
@@ -68,7 +64,6 @@ def get_camera_config(video_id=1):
         if config_path:
             with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Nếu tìm thấy file, trả về đúng ID yêu cầu, nếu ID lạ thì lấy mặc định từ fallback
                 return data.get(str(video_id), fallback.get(str(video_id), fallback["1"]))
         else:
             raise FileNotFoundError("Không tìm thấy file JSON cấu hình hệ thống.")
@@ -77,10 +72,6 @@ def get_camera_config(video_id=1):
         print("CONFIG ERROR =", str(e))
         return fallback.get(str(video_id), fallback["1"])
 
-
-# =========================
-# GET CONFIG
-# =========================
 def get_camera_config(video_id):
     default_config = {
         "stop_line_ratio": 0.5
@@ -96,9 +87,7 @@ def get_camera_config(video_id):
         return default_config
 
 
-# =========================
-# DRAW STOP LINE
-# =========================
+
 def draw_stop_line(frame, red_light=False, video_id=1):
     h, w = frame.shape[:2]
 
@@ -130,9 +119,6 @@ def draw_stop_line(frame, red_light=False, video_id=1):
     return stop_line_y
 
 
-# =========================
-# CHECK RED LIGHT VIOLATION
-# Xe chạy từ DƯỚI vạch đi LÊN
 def check_red_light_violation(
     track_id,
     bottom_y,
@@ -150,7 +136,7 @@ def check_red_light_violation(
     stop_ratio = cfg.get("stop_line_ratio", 0.5)
     stop_line_y = int(frame_height * stop_ratio)
 
-    # vùng chờ: dưới vạch một đoạn
+
     waiting_zone = 180
 
     if track_id not in vehicle_history:
@@ -196,10 +182,7 @@ def check_red_light_violation(
         return True
 
     return False
-# =========================
-# IMAGE STATIC CHECK
-# Ảnh tĩnh: xe nằm phía trên vạch khi đèn đỏ
-# =========================
+
 def check_red_light_static(
     bottom_y,
     frame_height,
@@ -215,10 +198,6 @@ def check_red_light_static(
 
     return bottom_y <= stop_line_y
 
-
-# =========================
-# RESET CACHE
-# =========================
 def reset_red_light_cache():
     violated_ids.clear()
     vehicle_history.clear()

@@ -67,15 +67,14 @@ def format_vn_plate(raw_text):
     if len(text) < 7:
         return "Unknown"
 
-    # Biển xe máy thường: 29Y156789 => 29-Y1 567.89
+
     if len(text) == 9:
         return f"{text[0:2]}-{text[2:4]} {text[4:7]}.{text[7:9]}"
 
-    # Biển 8 ký tự: 59F11234 => 59-F1 1234
+
     if len(text) == 8:
         return f"{text[0:2]}-{text[2:4]} {text[4:8]}"
 
-    # Biển 10 ký tự: 30A123456 => 30-A1 234.56
     if len(text) == 10:
         return f"{text[0:2]}-{text[2:5]} {text[5:8]}.{text[8:10]}"
 
@@ -98,7 +97,6 @@ def detect_plate(plate_crop):
 
         candidates = []
 
-        # Đọc toàn biển
         all_res = reader.readtext(
             img,
             detail=0,
@@ -109,7 +107,7 @@ def detect_plate(plate_crop):
         if all_res:
             candidates.append("".join(all_res))
 
-        # Đọc 2 dòng
+
         mid = h // 2
 
         top_img = img[0:mid, :]
@@ -143,7 +141,6 @@ def detect_plate(plate_crop):
             if formatted != "Unknown":
                 best = formatted
 
-                # ưu tiên chuỗi có đủ 9 ký tự raw: 29Y156789
                 raw = normalize_plate(c)
                 if len(raw) == 9:
                     return formatted

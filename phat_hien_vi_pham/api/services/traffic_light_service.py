@@ -3,9 +3,6 @@ import time
 import json
 import os
 
-# =========================
-# CONFIG
-# =========================
 config_path = os.path.join(
     os.path.dirname(__file__),
     "../../config/camera_config.json"
@@ -18,9 +15,6 @@ last_detect_time = 0
 HOLD_SECONDS = 2
 
 
-# =========================
-# LOAD CONFIG
-# =========================
 def get_roi_config(video_id):
 
     default_config = {
@@ -44,9 +38,6 @@ def get_roi_config(video_id):
         return default_config
 
 
-# =========================
-# DETECT TRAFFIC LIGHT
-# =========================
 def detect_traffic_light(frame, video_id=1):
 
     global current_light, last_detect_time
@@ -63,9 +54,6 @@ def detect_traffic_light(frame, video_id=1):
 
     roi = frame[roi_y1:roi_y2, roi_x1:roi_x2]
 
-    # =========================
-    # SAFE ROI
-    # =========================
     if roi is None or roi.size == 0:
         return {
             "red": False,
@@ -73,9 +61,6 @@ def detect_traffic_light(frame, video_id=1):
             "box": {"x": 0, "y": 0, "w": 0, "h": 0}
         }
 
-    # =========================
-    # YOLO DETECT
-    # =========================
     results = traffic_model(roi, imgsz=320, conf=0.4, verbose=False)
 
     detected_color = None
@@ -109,9 +94,6 @@ def detect_traffic_light(frame, video_id=1):
                     "h": y2 - y1
                 }
 
-    # =========================
-    # HOLD STATE (ANTI FLICKER)
-    # =========================
     if detected_color and best_conf > 0.5:
         current_light = detected_color
         last_detect_time = time.time()
@@ -119,9 +101,6 @@ def detect_traffic_light(frame, video_id=1):
     elif time.time() - last_detect_time > HOLD_SECONDS:
         current_light = "unknown"
 
-    # =========================
-    # SAFE OUTPUT
-    # =========================
     if best_box is None:
         best_box = {"x": 0, "y": 0, "w": 0, "h": 0}
 

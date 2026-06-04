@@ -4,10 +4,7 @@ import sys
 
 print("Starting Traffic System...")
 
-# chạy Flask API duy nhất
-api_process = subprocess.Popen(
-    [sys.executable, "app.py"]
-)
+api_process = subprocess.Popen([sys.executable, "app.py"])
 
 time.sleep(2)
 
@@ -20,11 +17,7 @@ try:
         time.sleep(1)
 
 except KeyboardInterrupt:
-
     print("\nStopping system...")
-
     api_process.terminate()
-
     api_process.wait()
-
     print("Stopped.")

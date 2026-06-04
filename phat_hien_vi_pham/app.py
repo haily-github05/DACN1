@@ -28,10 +28,7 @@ def get_config_file(filename):
         'config',
         filename
     )
-# =========================
-# CONFIG
-# =========================
-
+ 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 CORS(app, resources={
@@ -39,19 +36,12 @@ CORS(app, resources={
         "origins": "*"
     }
 })
-
-# =========================
-# REGISTER BLUEPRINT
-# =========================
-
+ 
 app.register_blueprint(scan_bp)
 app.register_blueprint(violation_bp)
 app.register_blueprint(camera_bp)
 
-# =========================
-# DATABASE
-# =========================
-
+ 
 db_config = {
     "host": "127.0.0.1",
     "port": 3308,
@@ -61,11 +51,7 @@ db_config = {
 }
 
 violation_model = ViolationModel(db_config)
-
-# =========================
-# EVIDENCE IMAGE
-# =========================
-
+ 
 @app.route('/evidences/<path:filename>')
 def get_image(filename):
 
@@ -84,11 +70,7 @@ def get_image(filename):
     ] = "*"
 
     return response
-
-# =========================
-# GET VIOLATION DETAIL
-# =========================
-
+ 
 @app.route('/api/violations/<int:id>', methods=['GET'])
 def get_violation(id):
 
@@ -140,11 +122,7 @@ def get_violation(id):
             "success": False,
             "error": str(e)
         }), 500
-
-# =========================
-# VIDEO STREAM
-# =========================
-
+ 
 @app.route('/videos/<path:filename>')
 def serve_video(filename):
 
@@ -173,10 +151,7 @@ def serve_video(filename):
 
     return response
 
-# =========================
-# GET VIDEO LIST
-# =========================
-
+ 
 @app.route('/videos', methods=['GET'])
 def get_videos():
 
@@ -237,10 +212,7 @@ def home():
         "traffic_web",
         "index.html"
     )
-
-# =========================
-# STATIC FILES
-# =========================
+ 
 
 @app.route("/<path:path>")
 def static_files(path):
@@ -250,10 +222,7 @@ def static_files(path):
         path
     )
 
-# =========================
-# RUN APP
-# =========================
-
+ 
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",

@@ -252,8 +252,6 @@ def check_lane_violation(
 
     is_three_lanes = lane_cfg.get("is_three_lanes", False)
 
-    # Vùng bên trái vạch đỏ là ngược chiều.
-    # lane_service không xử lý ngược chiều nên bỏ qua.
     if vehicle_x < x_dir_boundary:
         return violations
 

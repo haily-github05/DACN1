@@ -366,10 +366,6 @@ async function updateDashboard() {
             return true;
         });
 
-        // =====================
-        // SORT MỚI NHẤT
-        // =====================
-
         filteredData.sort((a, b) => {
 
             return new Date(
@@ -378,10 +374,6 @@ async function updateDashboard() {
                 (a.time || "").replace(" ", "T")
             );
         });
-
-        // =====================
-        // RENDER TABLE
-        // =====================
 
         filteredData.forEach((v, index) => {
 
@@ -394,7 +386,7 @@ async function updateDashboard() {
             let statusText =
                 "Chờ xử lý";
 
-            // VERIFIED
+
             if (
                 statusRaw === "verified" ||
                 statusRaw.includes("xác minh")
@@ -406,8 +398,7 @@ async function updateDashboard() {
                 statusText =
                     "Đã xác minh";
             }
-
-            // REJECTED
+ 
             else if (
                 statusRaw === "rejected" ||
                 statusRaw.includes("từ chối")
@@ -460,10 +451,7 @@ async function updateDashboard() {
                 </tr>
             `;
         });
-
-        // =====================
-        // UPDATE UI
-        // =====================
+ 
 
         document.getElementById(
             "violationTable"
