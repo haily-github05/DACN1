@@ -12,6 +12,70 @@ config_path = os.path.join(
 
 violated_ids = set()
 vehicle_history = {}
+def get_camera_config(video_id=1):
+    global current_light, last_detect_time
+    
+    # Khối cấu hình mặc định (Bảo hiểm Fallback cấp cao nhất)
+    fallback = {
+        "1": {
+            "name": "Camera Ngũ Hành Sơn",
+            "stop_line_ratio": 0.82,
+            "roi_traffic_light": {
+                "y1": 0.05,
+                "y2": 0.45,
+                "x1": 0.90,
+                "x2": 1.00
+            },
+            "lane_config": {
+                "is_three_lanes": False,
+                "y_min_ratio": 0.30,
+                "y_max_ratio": 0.90,
+                "dir_top_ratio": 0.28,
+                "dir_bottom_ratio": -0.08,
+                "lane_top_ratio": 0.48,
+                "lane_bottom_ratio": 0.33
+            }
+        },
+        "2": {
+            "name": "Camera Ngũ Hành Sơn - Video 2",
+            "stop_line_ratio": 0.84,
+            "roi_traffic_light": {"y1": 0.05, "y2": 0.45, "x1": 0.90, "x2": 1.00},
+            "lane_config": {
+                "is_three_lanes": False, 
+                "y_min_ratio": 0.35, "y_max_ratio": 0.94,
+                "dir_top_ratio": 0.22, "dir_bottom_ratio": 0.00,
+                "lane_top_ratio": 0.45, "lane_bottom_ratio": 0.36
+            }
+        }
+    }
+
+    try:
+        # Cơ chế quét tìm file cấu hình động an toàn tuyệt đối từ code dưới
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        possible_paths = [
+            os.path.join(base_dir, "config", "camera_config.json"),
+            os.path.join(base_dir, "phat_hien_vi_pham", "config", "camera_config.json"),
+            "config/camera_config.json",
+            "camera_config.json"
+        ]
+        
+        config_path = None
+        for p in possible_paths:
+            if os.path.exists(p):
+                config_path = p
+                break
+
+        if config_path:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # Nếu tìm thấy file, trả về đúng ID yêu cầu, nếu ID lạ thì lấy mặc định từ fallback
+                return data.get(str(video_id), fallback.get(str(video_id), fallback["1"]))
+        else:
+            raise FileNotFoundError("Không tìm thấy file JSON cấu hình hệ thống.")
+            
+    except Exception as e:
+        print("CONFIG ERROR =", str(e))
+        return fallback.get(str(video_id), fallback["1"])
 
 
 # =========================
@@ -25,11 +89,10 @@ def get_camera_config(video_id):
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             configs = json.load(f)
-
-        return configs.get(str(video_id), default_config)
+            return configs.get(str(video_id), default_config)
 
     except Exception as e:
-        print("CONFIG ERROR =", e)
+        print("CAMERA CONFIG ERROR:", e)
         return default_config
 
 
@@ -69,65 +132,90 @@ def draw_stop_line(frame, red_light=False, video_id=1):
 
 # =========================
 # CHECK RED LIGHT VIOLATION
-# =========================
+# Xe chạy từ DƯỚI vạch đi LÊN
 def check_red_light_violation(
-    track_key,
-    vehicle_y,
+    track_id,
+    bottom_y,
     frame_height,
     red_light,
     video_id=1
 ):
-    """
-    Tối ưu cho camera xe đi từ dưới lên:
-    - Không cần vẽ mũi xe.
-    - Dùng cạnh trên bbox của xe làm điểm kiểm tra ảo.
-    - Chỉ báo lỗi khi xe đang di chuyển lên và cắt qua vạch lúc đèn đỏ.
-    """
+    if not red_light:
+        return False
 
-    if track_key in [None, -1, ""]:
+    if track_id is None or track_id == -1:
         return False
 
     cfg = get_camera_config(video_id)
     stop_ratio = cfg.get("stop_line_ratio", 0.5)
     stop_line_y = int(frame_height * stop_ratio)
 
-    prev_y = vehicle_history.get(track_key)
+    # vùng chờ: dưới vạch một đoạn
+    waiting_zone = 180
 
-    # lưu vị trí hiện tại
-    vehicle_history[track_key] = vehicle_y
-
-    if prev_y is None:
+    if track_id not in vehicle_history:
+        vehicle_history[track_id] = {
+            "prev_bottom": bottom_y,
+            "was_below_line": bottom_y > stop_line_y,
+            "moving_up_count": 0
+        }
         return False
 
-    if not red_light:
-        return False
+    info = vehicle_history[track_id]
+    prev_y = info["prev_bottom"]
 
-    # xe đi từ dưới lên => y giảm
-    moving_up = vehicle_y < prev_y
+    moving_up = bottom_y < prev_y - 5
 
-    if not moving_up:
-        return False
+    if moving_up:
+        info["moving_up_count"] += 1
+    else:
+        info["moving_up_count"] = 0
 
-    # cắt qua vạch từ dưới lên
+    if bottom_y > stop_line_y:
+        info["was_below_line"] = True
+
     crossed_line = (
-        prev_y >= stop_line_y
-        and vehicle_y <= stop_line_y
+        prev_y > stop_line_y
+        and bottom_y <= stop_line_y
     )
 
-    # trường hợp scan chậm, xe nhảy qua vạch giữa 2 frame
-    jumped_over_line = (
-        prev_y > stop_line_y + 40
-        and vehicle_y < stop_line_y - 40
+    started_below_and_moving = (
+        info["was_below_line"]
+        and bottom_y > stop_line_y
+        and bottom_y < stop_line_y + waiting_zone
+        and info["moving_up_count"] >= 1
     )
 
-    if (
-        track_key not in violated_ids
-        and (crossed_line or jumped_over_line)
-    ):
-        violated_ids.add(track_key)
+    vehicle_history[track_id]["prev_bottom"] = bottom_y
+
+    if track_id in violated_ids:
+        return False
+
+    if crossed_line or started_below_and_moving:
+        violated_ids.add(track_id)
         return True
 
     return False
+# =========================
+# IMAGE STATIC CHECK
+# Ảnh tĩnh: xe nằm phía trên vạch khi đèn đỏ
+# =========================
+def check_red_light_static(
+    bottom_y,
+    frame_height,
+    red_light,
+    video_id=1
+):
+    if not red_light:
+        return False
+
+    cfg = get_camera_config(video_id)
+    stop_ratio = cfg.get("stop_line_ratio", 0.5)
+    stop_line_y = int(frame_height * stop_ratio)
+
+    return bottom_y <= stop_line_y
+
+
 # =========================
 # RESET CACHE
 # =========================

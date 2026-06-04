@@ -82,7 +82,7 @@
             height: auto;
             display: block;
         }
-                #overlayCanvas {
+        #overlayCanvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -147,7 +147,7 @@
         .mode-btn:hover { transform: scale(1.03); }
         .active-mode { background: #2563eb; color: white; }
 
-        /* IMAGE CANVAS OVERLAY LAYOUT */
+        /* IMAGE CANVAS OVERLAY LAYOUT (ĐÃ TỐI ƯU KHUNG ẢNH VỪA ĐỦ) */
         .image-scan-layout {
             width: 100%;
             display: flex;
@@ -157,17 +157,20 @@
 
         .image-preview-container {
             position: relative;
-            width: 100%;
-            max-width: 750px; /* Khớp kích thước ngang tương tự như bên Video */
-            margin-top: 15px;
-            display: none; /* Ẩn đi mặc định, chỉ hiện khi đã chọn ảnh */
+            width: auto;
+            max-width: fit-content; /* Khung tự động bo sát vào kích thước ảnh thực tế */
+            max-height: 500px; /* Giới hạn chiều cao tối đa để không chiếm toàn màn hình */
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; /* Hiện khi có ảnh */
         }
 
         #previewImage {
-            width: 100%;
+            max-width: 100%;
+            max-height: 500px; /* Đồng bộ chiều cao với container */
             display: block;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            object-fit: contain; /* Giữ nguyên tỉ lệ ảnh */
         }
 
         #imageCanvas {
@@ -177,38 +180,33 @@
             width: 100%;
             height: 100%;
         }
+
         /* Styling cho nút Play/Pause */
-#btnPlayPause {
-    background: #4b8fef; /* Màu xám xanh hiện đại */
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.8rem;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%; /* Căn theo chiều rộng của cột phải */
-}
+        #btnPlayPause {
+            background: #4b8fef;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
 
-#btnPlayPause:hover {
-    background: #65a1f6;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
+        #btnPlayPause:hover {
+            background: #65a1f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-#btnPlayPause:active {
-    transform: translateY(0);
-}
-
-/* Hiệu ứng khi video đang chạy hoặc dừng */
-.video-playing {
-    background: #ea580c !important; /* Màu cam nếu muốn nhấn mạnh đang chạy */
-}
+        #btnPlayPause:active { transform: translateY(0); }
+        .video-playing { background: #ea580c !important; }
     </style>
 </head>
 
@@ -260,13 +258,13 @@
 
     <div id="imageSection" class="video-monitor-wrapper" style="display:none;">
         <div class="image-scan-layout">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="file" id="imageInput" accept="image/*" style="padding:10px; border:1px solid #ddd; border-radius:10px; background:white;">
+            <div style="display: flex; gap: 15px; align-items: center; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                <input type="file" id="imageInput" accept="image/*" style="padding:8px; border:1px solid #ddd; border-radius:8px; background:white;">
                 <button id="btnScanImage" style="background:#16a34a; color:white; border:none; padding:12px 24px; border-radius:10px; cursor:pointer; font-weight:600;">QUÉT ẢNH</button>
-                <div class="ai-status-box">
-                <small style="color: #64748b;">Trạng thái AI:</small>
-                <div id="imageScanResult" style="margin-top: 5px; font-weight: bold;">Đang chờ dữ liệu...</div>
-            </div>
+                <div class="ai-status-box" style="flex-grow: 1; padding: 10px 15px;">
+                    <small style="color: #64748b;">Trạng thái AI:</small>
+                    <div id="imageScanResult" style="margin-top: 2px; font-weight: bold;">Đang chờ dữ liệu...</div>
+                </div>
             </div>
 
             <div id="imageContainer" class="image-preview-container">
@@ -304,5 +302,37 @@
 <script src="js/violation.js"></script>
 <script src="js/video.js"></script>
 <script src="js/camera.js"></script>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const imageContainer = document.getElementById('imageContainer');
+    const previewImage = document.getElementById('previewImage');
+
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previewImage.src = event.target.result;
+                imageContainer.style.display = 'block'; // Hiện khung ảnh khi đã load xong ảnh
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // logic chuyển tab cơ bản (nếu file js ngoài chưa định nghĩa)
+    document.getElementById('tabImage').addEventListener('click', function() {
+        document.getElementById('videoSection').style.display = 'none';
+        document.getElementById('imageSection').style.display = 'flex';
+        this.classList.add('active-mode');
+        document.getElementById('tabVideo').classList.remove('active-mode');
+    });
+    document.getElementById('tabVideo').addEventListener('click', function() {
+        document.getElementById('videoSection').style.display = 'flex';
+        document.getElementById('imageSection').style.display = 'none';
+        this.classList.add('active-mode');
+        document.getElementById('tabImage').classList.remove('active-mode');
+    });
+</script>
 </body>
 </html>

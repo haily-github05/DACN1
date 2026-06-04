@@ -204,12 +204,12 @@
             <p id="wrongLane" style="color: #8b5cf6;">0</p>
         </div>
 
-        <div class="card"
+        <!-- <div class="card"
             onclick="filterByCard('no_helmet')"
             style="border-left: 5px solid #f59e0b; cursor:pointer;">
             <h3>Không đội mũ</h3>
             <p id="noHelmet" style="color: #f59e0b;">0</p>
-        </div>
+        </div> -->
 
         
 
@@ -292,7 +292,7 @@ async function updateDashboard() {
         let tableHtml = "";
 
         let redLightCount = 0;
-        let noHelmetCount = 0;
+        // let noHelmetCount = 0;
         let wrongLaneCount = 0;
 
         // =====================
@@ -311,12 +311,12 @@ async function updateDashboard() {
                 redLightCount++;
             }
 
-            if (
-                type.includes("helmet") ||
-                type.includes("mũ")
-            ) {
-                noHelmetCount++;
-            }
+            // if (
+            //     type.includes("helmet") ||
+            //     type.includes("mũ")
+            // ) {
+            //     noHelmetCount++;
+            // }
 
             if (
                 type.includes("lane") ||
@@ -347,13 +347,13 @@ async function updateDashboard() {
                 );
             }
 
-            if (currentCardFilter === "no_helmet") {
+            // if (currentCardFilter === "no_helmet") {
 
-                return (
-                    type.includes("helmet") ||
-                    type.includes("mũ")
-                );
-            }
+            //     return (
+            //         type.includes("helmet") ||
+            //         type.includes("mũ")
+            //     );
+            // }
 
             if (currentCardFilter === "wrong_lane") {
 
@@ -477,9 +477,9 @@ async function updateDashboard() {
             "redLight"
         ).innerText = redLightCount;
 
-        document.getElementById(
-            "noHelmet"
-        ).innerText = noHelmetCount;
+        // document.getElementById(
+        //     "noHelmet"
+        // ).innerText = noHelmetCount;
 
         document.getElementById(
             "wrongLane"

@@ -6,7 +6,10 @@ import os
 # =========================
 # CONFIG
 # =========================
-config_path = "/Users/hohaily/Documents/github/DACN1/phat_hien_vi_pham/config/camera_config.json"
+config_path = os.path.join(
+    os.path.dirname(__file__),
+    "../../config/camera_config.json"
+)
 
 traffic_model = YOLO("AI_models/traffic-light.pt")
 

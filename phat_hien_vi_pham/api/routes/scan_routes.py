@@ -6,22 +6,24 @@ import numpy as np
 import mysql.connector
 
 from api.services.detector_service import detect_vehicles
-from api.services.ocr_service import read_plate_crop
+from api.services.ocr_service import detect_plate
 from api.services.traffic_light_service import detect_traffic_light
-from api.routes.lane_routes import draw_zones, check_lane_violation
+
+from api.services.lane_service import draw_zones, check_lane_violation
 from api.services.red_light_service import (
     draw_stop_line,
-    get_camera_config,
-    check_red_light_violation
+    check_red_light_violation,
+    check_red_light_static,
+    get_camera_config
 )
 
 scan_bp = Blueprint("scan", __name__)
 
 plate_cache = {}
-best_plate_cache = {}
-violated_tracks = {}
-saved_violation_tracks = set()
 
+# =========================
+# DB CONFIG
+# =========================
 db_config = {
     "host": "127.0.0.1",
     "port": 3308,
@@ -36,104 +38,23 @@ vehicle_map = {
     "bus": 3,
     "truck": 4,
     "person": 5,
-    "bicycle": 6
 }
 
 vehicle_name_vi = {
-    "motorcycle": "Xe máy",
-    "car": "Ô tô",
-    "bus": "Xe buýt",
-    "truck": "Xe tải",
-    "person": "Người đi bộ",
-    "bicycle": "Xe đạp"
+    "motorcycle": "XE MÁY",
+    "car": "Ô TÔ",
+    "bus": "XE BÚYT",
+    "truck": "XE TẢI",
+    "person": "NGƯỜI ĐI BỘ",
 }
 
 
-def get_track_key(track_id, vehicle_type, x, y, w, h):
-    if track_id not in [None, -1, ""]:
-        return f"{vehicle_type}_{track_id}"
-
-    cx = x + w // 2
-    cy = y + h // 2
-
-    return f"{vehicle_type}_{cx // 35}_{cy // 35}"
-
-
-def limit_cache():
-    if len(violated_tracks) > 1200:
-        violated_tracks.clear()
-
-    if len(saved_violation_tracks) > 1200:
-        saved_violation_tracks.clear()
-
-    if len(plate_cache) > 800:
-        plate_cache.pop(next(iter(plate_cache)))
-
-    if len(best_plate_cache) > 800:
-        best_plate_cache.pop(next(iter(best_plate_cache)))
-
-
-def save_violation(
-    cursor,
-    frame_visual,
-    x,
-    y,
-    w,
-    h,
-    plate,
-    violation_type,
-    video_id,
-    vehicle_type
-):
-    os.makedirs("evidences", exist_ok=True)
-
-    safe_plate = plate if plate != "Unknown" else "unknown"
-    image_name = f"{int(time.time() * 1000)}_{safe_plate}.jpg"
-    path = os.path.join("evidences", image_name)
-
-    evidence = frame_visual.copy()
-
-    cv2.rectangle(
-        evidence,
-        (x, y),
-        (x + w, y + h),
-        (0, 0, 255),
-        3
-    )
-
-    cv2.putText(
-        evidence,
-        f"{violation_type} ({plate})",
-        (x, max(30, y - 10)),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.8,
-        (0, 0, 255),
-        2
-    )
-
-    cv2.imwrite(path, evidence)
-
-    vehicle_id = vehicle_map.get(vehicle_type)
-
-    if vehicle_id:
-        cursor.execute("""
-            INSERT INTO violations
-            (vehicle_id, type, time, video_id, plate, image, status)
-            VALUES (%s, %s, NOW(), %s, %s, %s, %s)
-        """, (
-            vehicle_id,
-            violation_type,
-            video_id,
-            plate,
-            image_name,
-            "pending"
-        ))
-
-    return image_name
-
-
+# =========================
+# MAIN API
+# =========================
 @scan_bp.route("/api/scan", methods=["POST"])
 def scan():
+
     conn = None
     cursor = None
 
@@ -143,263 +64,218 @@ def scan():
         mode = request.form.get("mode", "image")
 
         if not file:
-            return jsonify({
-                "success": False,
-                "error": "No image"
-            }), 400
+            return jsonify({"success": False, "error": "No image"}), 400
 
         np_arr = np.frombuffer(file.read(), np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
         if frame is None:
-            return jsonify({
-                "success": False,
-                "error": "Decode failed"
-            }), 400
+            return jsonify({"success": False, "error": "Decode failed"}), 400
 
-        if mode == "video":
-            traffic = detect_traffic_light(frame, video_id)
-            red_light = traffic.get("red", False)
-        else:
-            traffic = {
-                "light": "unknown",
-                "red": False
-            }
-            red_light = False
+        # =========================
+        # TRAFFIC LIGHT
+        # =========================
+        traffic = detect_traffic_light(frame, video_id)
 
-        if mode == "video":
-            detected = detect_vehicles(
-                frame,
-                mode="video",
-                imgsz=640,
-                conf=0.1
-            ) or []
-        else:
-            detected = detect_vehicles(
-                frame,
-                mode="image",
-                imgsz=1280,
-                conf=0.4
-            ) or []
+        red_light = traffic["red"]
+        light_box = traffic["box"]
+
+        # =========================
+        # VEHICLES
+        # =========================
+        detected = detect_vehicles(frame, mode=mode, imgsz=736, conf=0.18) or []
 
         frame_visual = frame.copy()
 
-        if mode == "video":
-            draw_zones(frame_visual)
-            draw_stop_line(
-                frame_visual,
-                red_light,
-                video_id
-            )
+        draw_zones(frame_visual,video_id=video_id)
+        draw_stop_line(frame_visual, red_light, video_id)
 
-        if mode == "video":
-            conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor()
-            conn.autocommit = True
+        # =========================
+        # DRAW TRAFFIC LIGHT
+        # =========================
+        if isinstance(light_box, dict):
+            lx, ly, lw, lh = light_box["x"], light_box["y"], light_box["w"], light_box["h"]
+        else:
+            lx = ly = lw = lh = 0
+
+        # =========================
+        # DB CONNECT
+        # =========================
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        conn.autocommit = True
 
         vehicles = []
-        cfg = get_camera_config(video_id)
 
+        # =========================
+        # PROCESS VEHICLES
+        # =========================
         for item in detected:
+
             plate = "Unknown"
-            image_name = ""
-            violations = []
+            track_id = item.get("track_id")
 
-            track_id = item.get("track_id", -1)
+            is_static = track_id in [None, -1, ""]
+
             plate_crop = item.get("plate_crop")
-            box = item.get("vehicle_box") or item.get("box")
 
-            if not box:
-                continue
+            # =========================
+            # OCR
+            # =========================
+            if isinstance(plate_crop, np.ndarray) and plate_crop.size > 0:
+
+                if is_static:
+                    res = detect_plate(plate_crop)
+
+                    if res != "Unknown":
+                        plate = res
+
+                else:
+                    if track_id in plate_cache:
+                        plate = plate_cache[track_id]
+                    else:
+                        res = detect_plate(plate_crop)
+
+                        if res != "Unknown":
+                            plate = res
+                            plate_cache[track_id] = plate
+
+                        if len(plate_cache) > 300:
+                            plate_cache.pop(next(iter(plate_cache)))
+
+            # =========================
+            # BOX SAFE
+            # =========================
+            box = item.get("vehicle_box")
 
             if isinstance(box, dict):
-                x = int(box["x"])
-                y = int(box["y"])
-                w = int(box["w"])
-                h = int(box["h"])
+                x, y, w, h = box["x"], box["y"], box["w"], box["h"]
             else:
-                x, y, w, h = map(int, box)
+                x, y, w, h = box
 
-            if w <= 0 or h <= 0:
-                continue
-
-            center_x = x + w // 2
             center_y = y + h // 2
+            bottom = y + h
+            center_x = x + w // 2
 
-            # Xe đi từ dưới lên: đầu xe là y trên cùng
-            vehicle_check_y = y + h // 4
-
-            vehicle_type = item.get("vehicle_type", "unknown")
+            vehicle_type = item["vehicle_type"]
             vehicle_vi = vehicle_name_vi.get(vehicle_type, vehicle_type)
 
-            track_key = get_track_key(
-                track_id,
-                vehicle_type,
-                x,
-                y,
-                w,
-                h
-            )
-
             # =========================
-            # OCR + CACHE BIỂN SỐ
+            # VIOLATION
             # =========================
-            ocr_plate = "Unknown"
+            violations = []
 
-            if (
-                isinstance(plate_crop, np.ndarray)
-                and plate_crop.size > 0
-            ):
-
-                try:
-                    ocr_plate = read_plate_crop(plate_crop)
-
-                except Exception as e:
-                    print("OCR ERROR =", e)
-                    ocr_plate = "Unknown"
-
-                if ocr_plate != "Unknown":
-
-                    plate = ocr_plate
-
-                    plate_cache[track_key] = plate
-                    best_plate_cache[track_key] = plate
-
-                elif track_key in best_plate_cache:
-
-                    plate = best_plate_cache[track_key]
-
-                elif track_key in plate_cache:
-
-                    plate = plate_cache[track_key]
-
-            elif track_key in best_plate_cache:
-
-                plate = best_plate_cache[track_key]
-
-            elif track_key in plate_cache:
-
-                plate = plate_cache[track_key]
-
-            # =========================
-            # IMAGE MODE: KHÔNG CHECK LỖI
-            # =========================
-            if mode == "image":
-                vehicles.append({
-                    "track_id": track_id,
-                    "track_key": track_key,
-                    "plate": plate,
-                    "vehicle_type": vehicle_vi,
-                    "violation": None,
-                    "locked_violation": False,
-                    "image": "",
-                    "box": {
-                        "x": x,
-                        "y": y,
-                        "w": w,
-                        "h": h
-                    },
-                    "plate_box": item.get("plate_box"),
-                    "camera_name": cfg.get("name", "Camera Trục Chính"),
-                    "status": "unknown"
-                })
-                continue
-
-            # =========================
-            # CHECK SAI LÀN
-            # =========================
-            lane_violations = check_lane_violation(
+            lane_errors = check_lane_violation(
                 center_x,
-                center_y,
-                vehicle_type
+                bottom,
+                vehicle_type,
+                video_id=video_id,
+                frame_width=frame.shape[1],
+                frame_height=frame.shape[0]
             )
 
-            if lane_violations:
-                violations.extend(lane_violations)
+            if lane_errors:
+                violations.extend(lane_errors)
+            
 
-            # =========================
-            # CHECK VƯỢT ĐÈN ĐỎ
-            # =========================
-            is_red_violation = check_red_light_violation(
-                track_key,
-                vehicle_check_y,
-                frame.shape[0],
-                red_light,
-                video_id
-            )
+            if mode == "video":
+                if check_red_light_violation(
+                    track_id,
+                    bottom,
+                    frame.shape[0],
+                    red_light,
+                    video_id
+                ):
+                    violations.append("Vượt đèn đỏ")
 
-            if is_red_violation:
-                violations.append("Vượt đèn đỏ")
+            else:
+                if check_red_light_static(
+                    bottom,
+                    frame.shape[0],
+                    red_light,
+                    video_id
+                ):
+                    violations.append("Vượt đèn đỏ")
 
             violation_type = violations[0] if violations else None
 
-            # =========================
-            # GIỮ ĐỎ ĐẾN HẾT VIDEO
-            # =========================
-            if track_key in violated_tracks:
-                violation_type = violated_tracks[track_key]
-
-            elif violation_type:
-                violated_tracks[track_key] = violation_type
+            image_name = ""
 
             # =========================
-            # LƯU DB 1 LẦN
+            # SAVE
             # =========================
-            if violation_type and track_key not in saved_violation_tracks:
-                image_name = save_violation(
-                    cursor,
-                    frame_visual,
-                    x,
-                    y,
-                    w,
-                    h,
-                    plate,
-                    violation_type,
-                    video_id,
-                    vehicle_type
+            if violation_type:
+
+                os.makedirs("evidences", exist_ok=True)
+
+                image_name = f"{int(time.time()*1000)}_{plate}.jpg"
+                path = os.path.join("evidences", image_name)
+
+                evidence = frame_visual.copy()
+
+                cv2.rectangle(evidence, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                vehicle_label = {
+                    "motorcycle": "XE MAY",
+                    "car": "O TO",
+                    "bus": "XE BUYT",
+                    "truck": "XE TAI",
+                    "person": "NGUOI DI BO",
+                }.get(vehicle_type, vehicle_type.upper())
+
+                label = f"{vehicle_label} | {plate}"
+                cv2.putText(
+                    evidence,
+                    label,
+                    (x, max(35, y - 15)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.0,
+                    (0, 0, 255),
+                    3
                 )
 
-                saved_violation_tracks.add(track_key)
+                cv2.imwrite(path, evidence)
 
-            limit_cache()
+                vehicle_id = vehicle_map.get(vehicle_type)
+
+                if vehicle_id:
+                    cursor.execute("""
+                        INSERT INTO violations
+                        (vehicle_id, type, time, video_id, plate, image, status)
+                        VALUES (%s, %s, NOW(), %s, %s, %s, %s)
+                    """, (
+                        vehicle_id,
+                        violation_type,
+                        video_id,
+                        plate,
+                        image_name,
+                        "pending"
+                    ))
 
             vehicles.append({
                 "track_id": track_id,
-                "track_key": track_key,
                 "plate": plate,
                 "vehicle_type": vehicle_vi,
                 "violation": violation_type,
-                "locked_violation": True if violation_type else False,
                 "image": image_name,
-                "box": {
-                    "x": x,
-                    "y": y,
-                    "w": w,
-                    "h": h
-                },
+                "box": {"x": x, "y": y, "w": w, "h": h},
                 "plate_box": item.get("plate_box"),
-                "camera_name": cfg.get("name", "Camera Trục Chính"),
-                "status": "pending" if violation_type else "unknown"
+                "camera_name": "Camera Trục Chính",
+                "status": "pending"
             })
 
         return jsonify({
             "success": True,
             "vehicles": vehicles,
             "red_light": red_light,
-            "light": traffic.get("light", "unknown")
+            "light": traffic["light"]
         })
 
     except Exception as e:
         print("SCAN ERROR =", str(e))
-
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
     finally:
         if cursor:
             cursor.close()
-
         if conn:
             conn.close()
