@@ -211,7 +211,7 @@ def remove_duplicate_boxes(vehicles):
 
             overlap_small = inter / max(1, min(a_area, b_area))
 
-            if overlap_small > 0.25 and a_area < b_area:
+            if overlap_small > 0.6 and a_area < b_area:
                 remove = True
                 break
 
@@ -245,12 +245,10 @@ def detect_vehicles(
     else:
         results = vehicle_model.predict(
             frame,
-            imgsz=imgsz,
-            conf=conf,
-            iou=0.45,
-            classes=[2, 3, 5, 7],
-            device="cpu",
-            verbose=False
+            imgsz=1280,
+            conf=0.30,
+            iou=0.40,
+            classes=[2,3,5,7]
         )
 
     vehicles = []
@@ -284,7 +282,7 @@ def detect_vehicles(
             active_tracks[track_id] = (x1, y1, x2, y2)
 
         # pad nhẹ cho box xe
-        pad = 6
+        pad = 2
 
         x1 = max(0, x1 - pad)
         y1 = max(0, y1 - pad)

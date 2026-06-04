@@ -6,7 +6,16 @@ import numpy as np
 reader = easyocr.Reader(["en"], gpu=False)
 
 
-def clean_plate(text):
+def clean_plate_keep_format(text):
+    if not text:
+        return ""
+
+    text = text.upper()
+    text = re.sub(r"[^A-Z0-9\-\.]", "", text)
+    return text
+
+
+def clean_plate_raw(text):
     if not text:
         return ""
 
@@ -16,7 +25,7 @@ def clean_plate(text):
 
 
 def normalize_plate(text):
-    text = clean_plate(text)
+    text = clean_plate_raw(text)
 
     text = text.replace("O", "0")
     text = text.replace("Q", "0")
@@ -35,8 +44,8 @@ def preprocess_plate(img):
     img = cv2.resize(
         img,
         None,
-        fx=2.5,
-        fy=2.5,
+        fx=2,
+        fy=2,
         interpolation=cv2.INTER_CUBIC
     )
 
@@ -52,14 +61,23 @@ def preprocess_plate(img):
     return gray
 
 
-def format_vn_plate(text):
-    text = normalize_plate(text)
+def format_vn_plate(raw_text):
+    text = normalize_plate(raw_text)
 
     if len(text) < 7:
         return "Unknown"
 
-    if len(text) > 10:
-        text = text[:10]
+    # Biển xe máy thường: 29Y156789 => 29-Y1 567.89
+    if len(text) == 9:
+        return f"{text[0:2]}-{text[2:4]} {text[4:7]}.{text[7:9]}"
+
+    # Biển 8 ký tự: 59F11234 => 59-F1 1234
+    if len(text) == 8:
+        return f"{text[0:2]}-{text[2:4]} {text[4:8]}"
+
+    # Biển 10 ký tự: 30A123456 => 30-A1 234.56
+    if len(text) == 10:
+        return f"{text[0:2]}-{text[2:5]} {text[5:8]}.{text[8:10]}"
 
     return text
 
@@ -75,9 +93,12 @@ def detect_plate(plate_crop):
             return "Unknown"
 
         h, w = img.shape[:2]
-        allowed = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-        # đọc toàn biển
+        allowed = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-."
+
+        candidates = []
+
+        # Đọc toàn biển
         all_res = reader.readtext(
             img,
             detail=0,
@@ -85,12 +106,10 @@ def detect_plate(plate_crop):
             allowlist=allowed
         )
 
-        text_all = format_vn_plate("".join(all_res))
+        if all_res:
+            candidates.append("".join(all_res))
 
-        if text_all != "Unknown":
-            return text_all
-
-        # fallback: biển xe máy 2 dòng
+        # Đọc 2 dòng
         mid = h // 2
 
         top_img = img[0:mid, :]
@@ -110,12 +129,26 @@ def detect_plate(plate_crop):
             allowlist=allowed
         )
 
-        line1 = normalize_plate("".join(top_res))
-        line2 = normalize_plate("".join(bot_res))
+        line1 = "".join(top_res)
+        line2 = "".join(bot_res)
 
-        full = format_vn_plate(line1 + line2)
+        if line1 or line2:
+            candidates.append(line1 + line2)
 
-        return full
+        best = "Unknown"
+
+        for c in candidates:
+            formatted = format_vn_plate(c)
+
+            if formatted != "Unknown":
+                best = formatted
+
+                # ưu tiên chuỗi có đủ 9 ký tự raw: 29Y156789
+                raw = normalize_plate(c)
+                if len(raw) == 9:
+                    return formatted
+
+        return best
 
     except Exception as e:
         print("OCR ERROR:", e)
